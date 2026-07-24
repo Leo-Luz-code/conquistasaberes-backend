@@ -314,6 +314,13 @@ export class CoursesService {
   // ADMIN METHODS - GESTÃO DE CURSOS, MÓDULOS E AULAS
   // =========================================================================
 
+  async getSecretarias() {
+    return this.prisma.secretaria.findMany({
+      where: { deletedAt: null },
+      orderBy: { sigla: 'asc' },
+    });
+  }
+
   async findAllAdmin() {
     return this.prisma.course.findMany({
       where: { deletedAt: null },

@@ -79,6 +79,12 @@ export class CoursesController {
     return this.coursesService.findAllAdmin();
   }
 
+  @ApiOperation({ summary: 'Listar secretarias municipais' })
+  @Get('secretarias')
+  async getSecretarias() {
+    return this.coursesService.getSecretarias();
+  }
+
   @ApiOperation({ summary: 'Detalhes completos do curso e plano de aulas com status do servidor' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
