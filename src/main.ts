@@ -15,6 +15,8 @@ import * as cookieParser from 'cookie-parser';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 
+import { join } from 'path';
+
 async function bootstrap() {
   const ssl = process.env.SSL === 'true';
   let httpsOptions = null;
@@ -30,6 +32,10 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     httpsOptions,
+  });
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
   });
 
   const prismaService = app.get(PrismaService);
