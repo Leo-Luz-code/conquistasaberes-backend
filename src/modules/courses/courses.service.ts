@@ -1,9 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
-<<<<<<< HEAD
 import { CertificateStatus, Prisma } from '@prisma/client';
-=======
-import { CertificateStatus } from '@prisma/client';
 import {
   CreateCourseDto,
   UpdateCourseDto,
@@ -12,7 +9,6 @@ import {
   CreateLessonDto,
   UpdateLessonDto,
 } from './dto';
->>>>>>> main
 
 @Injectable()
 export class CoursesService {
@@ -525,14 +521,10 @@ export class CoursesService {
       newCertificateCode,
     };
   }
-<<<<<<< HEAD
-}
-=======
-
+  
   // =========================================================================
   // ADMIN METHODS - GESTÃO DE CURSOS, MÓDULOS E AULAS
   // =========================================================================
-
   async getSecretarias() {
     return this.prisma.secretaria.findMany({
       where: { deletedAt: null },
@@ -672,5 +664,3 @@ export class CoursesService {
     });
   }
 }
-
->>>>>>> main
