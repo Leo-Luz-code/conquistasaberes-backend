@@ -1,11 +1,11 @@
-version: "3.7"
-
 services:
   modelo-api:
     restart: always
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - postgres
     environment:
       - APP_NAME
       - HTTP_PORT
@@ -18,10 +18,26 @@ services:
       - ../../ssl:/app/ssl
     ports:
       - "${HTTP_PORT}:${HTTP_PORT}"
-    command: npm run start
+    networks:
+      - srvweb-network
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=modelo
+      - POSTGRES_PASSWORD=modelo
+      - POSTGRES_DB=modelo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - srvweb-network
 
 networks:
   srvweb-network:
     driver: bridge
+
+volumes:
+  postgres-data:

@@ -1,6 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
+<<<<<<< HEAD
 import { CertificateStatus, Prisma } from '@prisma/client';
+=======
+import { CertificateStatus } from '@prisma/client';
+import {
+  CreateCourseDto,
+  UpdateCourseDto,
+  CreateModuleDto,
+  UpdateModuleDto,
+  CreateLessonDto,
+  UpdateLessonDto,
+} from './dto';
+>>>>>>> main
 
 @Injectable()
 export class CoursesService {
@@ -513,4 +525,152 @@ export class CoursesService {
       newCertificateCode,
     };
   }
+<<<<<<< HEAD
 }
+=======
+
+  // =========================================================================
+  // ADMIN METHODS - GESTÃO DE CURSOS, MÓDULOS E AULAS
+  // =========================================================================
+
+  async getSecretarias() {
+    return this.prisma.secretaria.findMany({
+      where: { deletedAt: null },
+      orderBy: { sigla: 'asc' },
+    });
+  }
+
+  async findAllAdmin() {
+    return this.prisma.course.findMany({
+      where: { deletedAt: null },
+      include: {
+        secretaria: true,
+        modules: {
+          where: { deletedAt: null },
+          orderBy: { ordem: 'asc' },
+          include: {
+            lessons: {
+              where: { deletedAt: null },
+              orderBy: { ordem: 'asc' },
+            },
+          },
+        },
+        _count: {
+          select: { enrollments: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createCourse(dto: CreateCourseDto) {
+    return this.prisma.course.create({
+      data: {
+        titulo: dto.titulo,
+        descricao: dto.descricao,
+        cargaHoraria: dto.cargaHoraria,
+        categoria: dto.categoria || 'Geral',
+        capaUrl: dto.capaUrl,
+        secretariaId: dto.secretariaId || null,
+        isPublished: dto.isPublished ?? true,
+      },
+    });
+  }
+
+  async updateCourse(id: string, dto: UpdateCourseDto) {
+    const course = await this.prisma.course.findFirst({ where: { id, deletedAt: null } });
+    if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    return this.prisma.course.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async deleteCourse(id: string) {
+    const course = await this.prisma.course.findFirst({ where: { id, deletedAt: null } });
+    if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    return this.prisma.course.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async createModule(courseId: string, dto: CreateModuleDto) {
+    const course = await this.prisma.course.findFirst({ where: { id: courseId, deletedAt: null } });
+    if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    const count = await this.prisma.module.count({ where: { courseId, deletedAt: null } });
+
+    return this.prisma.module.create({
+      data: {
+        titulo: dto.titulo,
+        ordem: dto.ordem ?? count + 1,
+        courseId,
+      },
+    });
+  }
+
+  async updateModule(moduleId: string, dto: UpdateModuleDto) {
+    const moduleItem = await this.prisma.module.findFirst({ where: { id: moduleId, deletedAt: null } });
+    if (!moduleItem) throw new NotFoundException('Módulo não encontrado.');
+
+    return this.prisma.module.update({
+      where: { id: moduleId },
+      data: dto,
+    });
+  }
+
+  async deleteModule(moduleId: string) {
+    const moduleItem = await this.prisma.module.findFirst({ where: { id: moduleId, deletedAt: null } });
+    if (!moduleItem) throw new NotFoundException('Módulo não encontrado.');
+
+    return this.prisma.module.update({
+      where: { id: moduleId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async createLesson(moduleId: string, dto: CreateLessonDto) {
+    const moduleItem = await this.prisma.module.findFirst({ where: { id: moduleId, deletedAt: null } });
+    if (!moduleItem) throw new NotFoundException('Módulo não encontrado.');
+
+    const count = await this.prisma.lesson.count({ where: { moduleId, deletedAt: null } });
+
+    return this.prisma.lesson.create({
+      data: {
+        titulo: dto.titulo,
+        tipo: dto.tipo,
+        conteudoUrl: dto.conteudoUrl,
+        texto: dto.texto,
+        quizData: dto.quizData,
+        duracaoMin: dto.duracaoMin ?? 10,
+        ordem: dto.ordem ?? count + 1,
+        moduleId,
+      },
+    });
+  }
+
+  async updateLesson(lessonId: string, dto: UpdateLessonDto) {
+    const lesson = await this.prisma.lesson.findFirst({ where: { id: lessonId, deletedAt: null } });
+    if (!lesson) throw new NotFoundException('Aula não encontrada.');
+
+    return this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: dto,
+    });
+  }
+
+  async deleteLesson(lessonId: string) {
+    const lesson = await this.prisma.lesson.findFirst({ where: { id: lessonId, deletedAt: null } });
+    if (!lesson) throw new NotFoundException('Aula não encontrada.');
+
+    return this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: { deletedAt: new Date() },
+    });
+  }
+}
+
+>>>>>>> main
