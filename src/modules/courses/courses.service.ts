@@ -1,57 +1,262 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
-import { CertificateStatus } from '@prisma/client';
+import { CertificateStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CoursesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  async findAll(search?: string, secretariaId?: string, categoria?: string) {
-    const where: any = {
+  async findAll(search?: string, secretariaId?: string, categoria?: string, userId?: string) {
+    const where: Prisma.CourseWhereInput = {
       isPublished: true,
       deletedAt: null,
     };
 
+    const andConditions: Prisma.CourseWhereInput[] = [];
+
+    // Busca por título ou descrição
     if (search) {
-      where.OR = [
-        { titulo: { contains: search, mode: 'insensitive' } },
-        { descricao: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { titulo: { contains: search, mode: 'insensitive' } },
+          { descricao: { contains: search, mode: 'insensitive' } },
+        ]
+      });
     }
 
-    if (secretariaId) {
-      where.OR = [
-        { secretariaId },
-        { secretariaId: null }, // Cursos gerais da prefeitura
-      ];
-    }
+    // Cursos da secretaria do usuário + cursos gerais
+    if (secretariaId) { andConditions.push({ OR: [{ secretariaId }, { secretariaId: null }] }) }
 
-    if (categoria && categoria !== 'Todas') {
-      where.categoria = categoria;
-    }
+    // Filtra categoria
+    if (categoria && categoria !== 'Todas') { where.categoria = categoria }
+
+    // Remove cursos já matriculados
+    if (userId) { andConditions.push({ enrollments: { none: { userId } } }) }
+
+    if (andConditions.length > 0) { where.AND = andConditions }
 
     const courses = await this.prisma.course.findMany({
       where,
       include: {
         secretaria: true,
+        reviews: {
+          select: {
+            rating: true,
+          },
+        },
         _count: {
-          select: { modules: true, enrollments: true },
+          select: {
+            modules: true,
+            enrollments: true,
+            reviews: true,
+          },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    return courses.map((course) => ({
-      id: course.id,
-      titulo: course.titulo,
-      descricao: course.descricao,
-      cargaHoraria: course.cargaHoraria,
-      categoria: course.categoria,
-      capaUrl: course.capaUrl,
-      secretaria: course.secretaria,
-      modulosCount: course._count.modules,
-      inscritosCount: course._count.enrollments,
-    }));
+    return courses.map((course) => {
+      const totalAvaliacoes = course._count.reviews;
+
+      const mediaAvaliacoes =
+        totalAvaliacoes > 0
+          ? Number(
+            (course.reviews.reduce((total, review) => total + review.rating, 0,) / totalAvaliacoes).toFixed(1),
+          )
+          : 0;
+
+      return {
+        id: course.id,
+        titulo: course.titulo,
+        descricao: course.descricao,
+        cargaHoraria: course.cargaHoraria,
+        categoria: course.categoria,
+        capaUrl: course.capaUrl,
+        secretaria: course.secretaria,
+        modulosCount: course._count.modules,
+        inscritosCount: course._count.enrollments,
+        totalAvaliacoes,
+        mediaAvaliacoes,
+      };
+    });
+  }
+
+  async getMyCourses(userId: string) {
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        course: {
+          include: {
+            secretaria: true,
+
+            reviews: {
+              select: {
+                userId: true,
+                rating: true,
+                comment: true,
+              },
+            },
+
+            _count: {
+              select: {
+                reviews: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return enrollments.map((e) => {
+      const totalAvaliacoes = e.course._count.reviews;
+
+      const mediaAvaliacoes =
+        totalAvaliacoes > 0
+          ? Number(
+            (
+              e.course.reviews.reduce(
+                (total, review) => total + review.rating,
+                0,
+              ) / totalAvaliacoes
+            ).toFixed(1),
+          )
+          : 0;
+
+      const myReview = e.course.reviews.find(
+        (review) => review.userId === userId,
+      );
+
+      return {
+        id: e.course.id,
+        titulo: e.course.titulo,
+        descricao: e.course.descricao,
+        cargaHoraria: e.course.cargaHoraria,
+        categoria: e.course.categoria,
+        progresso: e.progress,
+
+        secretaria: e.course.secretaria,
+
+        myRating: myReview?.rating ?? 0,
+        myComment: myReview?.comment ?? '',
+
+        mediaAvaliacoes,
+        totalAvaliacoes,
+      };
+    });
+  }
+
+  async getCourseRatings(courseId: string) {
+    const course = await this.prisma.course.findFirst({
+      where: {
+        id: courseId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        titulo: true,
+      },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Curso não encontrado.');
+    }
+
+    const [summary, reviews] = await Promise.all([
+      this.prisma.courseReview.aggregate({
+        where: { courseId },
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      this.prisma.courseReview.findMany({
+        where: { courseId },
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          createdAt: true,
+          user: {
+            select: {
+              nome: true,
+              cargo: true,
+              secretaria: {
+                select: {
+                  nome: true,
+                  sigla: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+
+    return {
+      course,
+      totalAvaliacoes: summary._count._all,
+      mediaAvaliacoes: Number((summary._avg.rating ?? 0).toFixed(1)),
+      avaliacoes: reviews,
+    };
+  }
+
+  // Registrar ou atualizar nota (1 a 5 estrelas) e feedback do curso
+  async rateCourse(
+    userId: string,
+    courseId: string,
+    dto: { rating: number; comment?: string },
+  ) {
+    console.log('=== RATE COURSE ===');
+    console.log({ userId, courseId, dto });
+
+    const course = await this.prisma.course.findFirst({
+      where: {
+        id: courseId,
+        deletedAt: null,
+      },
+    });
+
+    console.log('Curso encontrado:', course);
+
+    if (!course) {
+      throw new NotFoundException('Curso não encontrado.');
+    }
+
+    const review = await this.prisma.courseReview.upsert({
+      where: {
+        courseId_userId: {
+          courseId,
+          userId,
+        },
+      },
+      update: {
+        rating: dto.rating,
+        comment: dto.comment,
+      },
+      create: {
+        courseId,
+        userId,
+        rating: dto.rating,
+        comment: dto.comment,
+      },
+    });
+
+    console.log('Review salva:', review);
+
+    return review;
   }
 
   async findOne(id: string, userId?: string) {
@@ -109,39 +314,46 @@ export class CoursesService {
   }
 
   async enroll(courseId: string, userId: string) {
-    const course = await this.prisma.course.findFirst({
-      where: { id: courseId, deletedAt: null },
-    });
+    console.log('Enroll:', { courseId, userId });
 
-    if (!course) {
-      throw new NotFoundException('Curso não encontrado.');
+    try {
+      const course = await this.prisma.course.findFirst({
+        where: { id: courseId, deletedAt: null },
+      });
+
+      if (!course) {
+        throw new NotFoundException('Curso não encontrado.');
+      }
+
+      const existing = await this.prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId, courseId } },
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      const newEnrollment = await this.prisma.enrollment.create({
+        data: {
+          userId,
+          courseId,
+          progress: 0.0,
+        },
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          acao: 'INSCRICAO_CURSO',
+          detalhes: `Inscrição no curso: ${course.titulo}`,
+        },
+      });
+
+      return newEnrollment;
+    } catch (error) {
+      console.error('Erro ao inscrever:', error);
+      throw error;
     }
-
-    const existing = await this.prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    const newEnrollment = await this.prisma.enrollment.create({
-      data: {
-        userId,
-        courseId,
-        progress: 0.0,
-      },
-    });
-
-    await this.prisma.auditLog.create({
-      data: {
-        userId,
-        acao: 'INSCRICAO_CURSO',
-        detalhes: `Inscrição no curso: ${course.titulo}`,
-      },
-    });
-
-    return newEnrollment;
   }
 
   async completeLesson(lessonId: string, userId: string) {

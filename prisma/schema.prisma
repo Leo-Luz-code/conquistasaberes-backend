@@ -56,7 +56,8 @@ model User {
   updatedAt      DateTime      @updatedAt
   deletedAt      DateTime?
   
-  comments     ForumComment[] 
+  comments       ForumComment[] 
+  courseReviews  CourseReview[]
 }
 
 model Course {
@@ -70,6 +71,7 @@ model Course {
   secretaria   Secretaria?   @relation(fields: [secretariaId], references: [id])
 
   modules      Module[]
+  reviews      CourseReview[]
   enrollments  Enrollment[]
   certificates Certificate[]
   forumPosts   ForumPost[]
@@ -78,6 +80,21 @@ model Course {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   deletedAt    DateTime?
+}
+
+model CourseReview {
+  id        String   @id @default(uuid())
+  rating    Int      // Nota de 1 a 5 estrelas
+  comment   String?  // Comentário / Feedback do servidor
+  createdAt DateTime @default(now())
+
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId]) // Garante 1 avaliação por servidor em cada curso
 }
 
 model Module {
@@ -198,7 +215,7 @@ model ForumPost {
   courseId  String?
   course    Course?   @relation(fields: [courseId], references: [id])
 
-  comments  ForumComment[] // 👈 ADICIONE ESTA LINHA AQUI
+  comments  ForumComment[]
 }
 
 model ForumComment {
