@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, UseGuards, Request, Body, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -16,11 +16,12 @@ import {
   CreateLessonDto,
   UpdateLessonDto,
 } from './dto';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @ApiTags('Catálogo de Cursos & AVA')
 @Controller('courses')
 export class CoursesController {
-  constructor(private readonly coursesService: CoursesService) {}
+  constructor(private readonly coursesService: CoursesService) { }
 
   @ApiOperation({ summary: 'Fazer upload de arquivo (PDF ou Capa do Curso)' })
   @ApiBearerAuth()
@@ -56,18 +57,38 @@ export class CoursesController {
     };
   }
 
-
-  @ApiOperation({ summary: 'Listar cursos disponíveis com filtros por busca, secretaria e categoria' })
+  @ApiOperation({
+    summary: 'Listar cursos disponíveis com filtros por busca, secretaria e categoria',
+  })
+  @ApiBearerAuth()
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'secretariaId', required: false, type: String })
   @ApiQuery({ name: 'categoria', required: false, type: String })
+  @UseGuards(JwtAtGuard)
   @Get()
   async findAll(
     @Query('search') search?: string,
     @Query('secretariaId') secretariaId?: string,
     @Query('categoria') categoria?: string,
+    @CurrentUser() user?: { sub?: string; id?: string },
   ) {
-    return this.coursesService.findAll(search, secretariaId, categoria);
+    const userId = user?.sub ?? user?.id;
+
+    return this.coursesService.findAll(
+      search,
+      secretariaId,
+      categoria,
+      userId,
+    );
+  }
+
+  @ApiOperation({ summary: 'Listar cursos do usuário logado (Meus Cursos)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
+  @Get('my-courses')
+  async getMyCourses(@Request() req: any) {
+    const userId = req.user?.sub ?? req.user?.id;
+    return this.coursesService.getMyCourses(userId);
   }
 
   @ApiOperation({ summary: 'Listar todos os cursos (Visão de Gestão/Admin)' })
@@ -85,12 +106,20 @@ export class CoursesController {
     return this.coursesService.getSecretarias();
   }
 
-  @ApiOperation({ summary: 'Detalhes completos do curso e plano de aulas com status do servidor' })
+  @ApiOperation({ summary: 'Listar avaliações de um curso' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
+  @Get(':id/ratings')
+  async getCourseRatings(@Param('id') courseId: string) {
+    return this.coursesService.getCourseRatings(courseId);
+  }
+
+  @ApiOperation({ summary: 'Detalhes completos do curso e plano de aulas com status do servidor' })
   @Get(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
   async findOne(@Param('id') id: string, @Request() req: any) {
-    return this.coursesService.findOne(id, req.user?.sub);
+    return this.coursesService.findOne(id, req.user?.sub ?? req.user?.id);
   }
 
   @ApiOperation({ summary: 'Inscrever-se no curso' })
@@ -98,15 +127,32 @@ export class CoursesController {
   @UseGuards(JwtAtGuard)
   @Post(':id/enroll')
   async enroll(@Param('id') id: string, @Request() req: any) {
-    return this.coursesService.enroll(id, req.user.sub);
+    console.log('JWT recebido:', req.user);
+
+    const userId = req.user?.sub ?? req.user?.id;
+    return this.coursesService.enroll(id, userId);
   }
 
-  @ApiOperation({ summary: 'Concluir aula, computar XP, progresso e verificar prêmios/certificados' })
+  @ApiOperation({ summary: 'Concluir aula' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
   @Post('lessons/:lessonId/complete')
   async completeLesson(@Param('lessonId') lessonId: string, @Request() req: any) {
-    return this.coursesService.completeLesson(lessonId, req.user.sub);
+    const userId = req.user?.sub ?? req.user?.id;
+    return this.coursesService.completeLesson(lessonId, userId);
+  }
+
+  @ApiOperation({ summary: 'Avaliar e deixar feedback sobre o curso' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
+  @Post(':id/rate')
+  async rateCourse(
+    @Param('id') courseId: string,
+    @Request() req: any,
+    @Body() dto: { rating: number; comment?: string },
+  ) {
+    const userId = req.user.sub || req.user.id;
+    return this.coursesService.rateCourse(userId, courseId, dto);
   }
 
   // =========================================================================
@@ -194,4 +240,3 @@ export class CoursesController {
     return this.coursesService.deleteLesson(lessonId);
   }
 }
-
