@@ -7,7 +7,6 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiBody, ApiConsumes } 
 import { CoursesService } from './courses.service';
 import { JwtAtGuard, RolesGuard } from '../../common/guards';
 import { Roles } from '../../common/decorators';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
 import {
   CreateCourseDto,
@@ -58,18 +57,6 @@ export class CoursesController {
     };
   }
 
-<<<<<<< Updated upstream
-=======
-  @ApiOperation({ summary: 'Listar cursos do usuário logado (Meus Cursos)' })
-  @ApiBearerAuth()
-  @UseGuards(JwtAtGuard)
-  @Get('my-courses')
-  async getMyCourses(@Request() req: any) {
-    const userId = req.user?.sub ?? req.user?.id;
-    return this.coursesService.getMyCourses(userId);
-  }
-
->>>>>>> Stashed changes
   @ApiOperation({
     summary: 'Listar cursos disponíveis com filtros por busca, secretaria e categoria',
   })
@@ -95,7 +82,6 @@ export class CoursesController {
     );
   }
 
-<<<<<<< Updated upstream
   @ApiOperation({ summary: 'Listar cursos do usuário logado (Meus Cursos)' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
@@ -103,14 +89,6 @@ export class CoursesController {
   async getMyCourses(@Request() req: any) {
     const userId = req.user?.sub ?? req.user?.id;
     return this.coursesService.getMyCourses(userId);
-=======
-  @ApiOperation({ summary: 'Listar avaliações de um curso' })
-  @ApiBearerAuth()
-  @UseGuards(JwtAtGuard)
-  @Get(':id/ratings')
-  async getCourseRatings(@Param('id') courseId: string) {
-    return this.coursesService.getCourseRatings(courseId);
->>>>>>> Stashed changes
   }
 
   @ApiOperation({ summary: 'Listar todos os cursos (Visão de Gestão/Admin)' })
@@ -128,7 +106,6 @@ export class CoursesController {
     return this.coursesService.getSecretarias();
   }
 
-<<<<<<< Updated upstream
   @ApiOperation({ summary: 'Listar avaliações de um curso' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
@@ -141,12 +118,6 @@ export class CoursesController {
   @Get(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
-=======
-  @ApiOperation({ summary: 'Detalhes completos do curso e plano de aulas com status do servidor' })
-  @Get(':id')
-  @ApiBearerAuth()
-  @UseGuards(JwtAtGuard)
->>>>>>> Stashed changes
   async findOne(@Param('id') id: string, @Request() req: any) {
     return this.coursesService.findOne(id, req.user?.sub ?? req.user?.id);
   }
@@ -156,14 +127,9 @@ export class CoursesController {
   @UseGuards(JwtAtGuard)
   @Post(':id/enroll')
   async enroll(@Param('id') id: string, @Request() req: any) {
-<<<<<<< Updated upstream
     console.log('JWT recebido:', req.user);
 
     const userId = req.user?.sub ?? req.user?.id;
-=======
-    const userId = req.user?.sub ?? req.user?.id;
-
->>>>>>> Stashed changes
     return this.coursesService.enroll(id, userId);
   }
 
@@ -174,19 +140,6 @@ export class CoursesController {
   async completeLesson(@Param('lessonId') lessonId: string, @Request() req: any) {
     const userId = req.user?.sub ?? req.user?.id;
     return this.coursesService.completeLesson(lessonId, userId);
-  }
-
-  @ApiOperation({ summary: 'Avaliar e deixar feedback sobre o curso' })
-  @ApiBearerAuth()
-  @UseGuards(JwtAtGuard)
-  @Post(':id/rate')
-  async rateCourse(
-    @Param('id') courseId: string,
-    @Request() req: any,
-    @Body() dto: { rating: number; comment?: string },
-  ) {
-    const userId = req.user.sub || req.user.id;
-    return this.coursesService.rateCourse(userId, courseId, dto);
   }
 
   @ApiOperation({ summary: 'Avaliar e deixar feedback sobre o curso' })

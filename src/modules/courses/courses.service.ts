@@ -219,55 +219,6 @@ export class CoursesService {
       mediaAvaliacoes: Number((summary._avg.rating ?? 0).toFixed(1)),
       avaliacoes: reviews,
     };
-<<<<<<< Updated upstream
-  }
-
-  // Registrar ou atualizar nota (1 a 5 estrelas) e feedback do curso
-  async rateCourse(
-    userId: string,
-    courseId: string,
-    dto: { rating: number; comment?: string },
-  ) {
-    console.log('=== RATE COURSE ===');
-    console.log({ userId, courseId, dto });
-
-    const course = await this.prisma.course.findFirst({
-      where: {
-        id: courseId,
-        deletedAt: null,
-      },
-    });
-
-    console.log('Curso encontrado:', course);
-
-    if (!course) {
-      throw new NotFoundException('Curso não encontrado.');
-    }
-
-    const review = await this.prisma.courseReview.upsert({
-      where: {
-        courseId_userId: {
-          courseId,
-          userId,
-        },
-      },
-      update: {
-        rating: dto.rating,
-        comment: dto.comment,
-      },
-      create: {
-        courseId,
-        userId,
-        rating: dto.rating,
-        comment: dto.comment,
-      },
-    });
-
-    console.log('Review salva:', review);
-
-    return review;
-=======
->>>>>>> Stashed changes
   }
 
   async findOne(id: string, userId?: string) {
