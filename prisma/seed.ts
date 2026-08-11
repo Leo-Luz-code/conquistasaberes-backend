@@ -8,20 +8,28 @@ const pool = new Pool({ connectionString: databaseUrl });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 async function main() {
-  console.log('🌱 Iniciando Seeding do Conquista Saberes AVA Municipal...');
+  console.log('🌱 Iniciando Seeding do Conquista Saberes AVA Municipal (Modelo Unificado)...');
 
-  // Limpar tabelas existentes em ordem
+  // Limpar tabelas existentes em ordem respeitando FKs
   await prisma.auditLog.deleteMany();
+  await prisma.forumComment.deleteMany();
   await prisma.forumPost.deleteMany();
   await prisma.certificate.deleteMany();
-  await prisma.userBadge.deleteMany();
-  await prisma.badge.deleteMany();
+  await prisma.certificadoExterno.deleteMany();
+  await prisma.passaportePontuacao.deleteMany();
+  await prisma.frequenciaQrcode.deleteMany();
+  await prisma.projetoFinal.deleteMany();
   await prisma.lessonProgress.deleteMany();
   await prisma.enrollment.deleteMany();
+  await prisma.userBadge.deleteMany();
+  await prisma.badge.deleteMany();
   await prisma.lesson.deleteMany();
   await prisma.module.deleteMany();
   await prisma.course.deleteMany();
+  await prisma.learningPath.deleteMany();
+  await prisma.eixoConhecimento.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.servidor.deleteMany();
   await prisma.secretaria.deleteMany();
 
   // 1. Criar Secretarias da PMVC
@@ -48,11 +56,44 @@ async function main() {
 
   console.log('✅ Secretarias criadas: SETP, SMS, SMED');
 
+  // 2. Criar Servidores Funcionais
+  const servidorFuncional1 = await prisma.servidor.create({
+    data: {
+      cpf: '12345678900',
+      matriculaPmvc: '2026001',
+      nomeCompleto: 'Carlos Alberto Silva',
+      cargoFuncao: 'Técnico Administrativo',
+      secretariaId: setp.id,
+    },
+  });
+
+  const servidorFuncional2 = await prisma.servidor.create({
+    data: {
+      cpf: '98765432100',
+      matriculaPmvc: '2026002',
+      nomeCompleto: 'Dra. Ana Paula Souza',
+      cargoFuncao: 'Coordenadora Geral de Saúde',
+      secretariaId: sms.id,
+    },
+  });
+
+  const servidorFuncional3 = await prisma.servidor.create({
+    data: {
+      cpf: '11122233344',
+      matriculaPmvc: '2026000',
+      nomeCompleto: 'Roberto Mendes (CETI)',
+      cargoFuncao: 'Administrador de TI e Capacitação CETI',
+      secretariaId: setp.id,
+    },
+  });
+
+  console.log('✅ Servidores Funcionais cadastrados');
+
   // Senhas
   const defaultPasswordHash = await bcrypt.hash('123456', 10);
   const adminPasswordHash = await bcrypt.hash('admin', 10);
 
-  // 2. Criar Usuários Exemplares
+  // 3. Criar Usuários / Contas de Acesso
   const servidor = await prisma.user.create({
     data: {
       cpf: '12345678900',
@@ -63,6 +104,7 @@ async function main() {
       role: Role.SERVIDOR,
       cargo: 'Técnico Administrativo',
       secretariaId: setp.id,
+      servidorId: servidorFuncional1.id,
       xpPoints: 350,
       level: 2,
       lgpdAccepted: true,
@@ -80,6 +122,7 @@ async function main() {
       role: Role.GESTOR_SECRETARIA,
       cargo: 'Coordenadora Geral de Saúde',
       secretariaId: sms.id,
+      servidorId: servidorFuncional2.id,
       xpPoints: 850,
       level: 4,
       lgpdAccepted: true,
@@ -97,6 +140,7 @@ async function main() {
       role: Role.ADMIN_RH_CETI,
       cargo: 'Administrador de TI e Capacitação CETI',
       secretariaId: setp.id,
+      servidorId: servidorFuncional3.id,
       xpPoints: 1500,
       level: 6,
       lgpdAccepted: true,
@@ -104,9 +148,35 @@ async function main() {
     },
   });
 
-  console.log('✅ Usuários de teste criados (Servidor, Gestor SMS, Admin CETI)');
+  console.log('✅ Usuários de Auth vinculados aos Servidores');
 
-  // 3. Badges de Gamificação
+  // 4. Eixos de Conhecimento e Trilhas de Aprendizagem
+  const eixoGovernança = await prisma.eixoConhecimento.create({
+    data: {
+      nomeEixo: 'Eixo I: Governança, Gestão & Inovação Pública',
+      descricao: 'Desenvolvimento de competências em gestão pública moderna, liderança, controle e transformação digital.',
+    },
+  });
+
+  const trilhaIntegracao = await prisma.learningPath.create({
+    data: {
+      tituloTrilha: 'Trilha de Integração ao Serviço Público Municipal',
+      cargaHorariaTotal: 12,
+      eixoId: eixoGovernança.id,
+    },
+  });
+
+  const trilhaGestao = await prisma.learningPath.create({
+    data: {
+      tituloTrilha: 'Trilha de Gestão e Liderança',
+      cargaHorariaTotal: 18,
+      eixoId: eixoGovernança.id,
+    },
+  });
+
+  console.log('✅ Eixos de Conhecimento e Trilhas criadas');
+
+  // 5. Badges de Gamificação
   const badgeInovador = await prisma.badge.create({
     data: {
       nome: 'Servidor Inovador',
@@ -134,26 +204,18 @@ async function main() {
     },
   });
 
-  const badgeGuardião = await prisma.badge.create({
-    data: {
-      nome: 'Guardião da Transparência',
-      descricao: 'Engajou-se em trilhas de governança, ética e transparência pública municipal.',
-      icone: 'verified_user',
-      xpBonus: 75,
-    },
-  });
+  console.log('✅ Badges de Gamificação criadas');
 
-  console.log('✅ 4 Badges de Gamificação criados');
-
-  // 4. Cursos
-  // Curso 1: Inovação e Transformação Digital
+  // 6. Cursos
   const cursoInovacao = await prisma.course.create({
     data: {
       titulo: 'Inovação e Transformação Digital na Gestão Pública',
       descricao: 'Capacitação completa sobre métodos ágeis, desburocratização, serviços digitais e cultura de inovação na Prefeitura de Vitória da Conquista.',
       cargaHoraria: 40,
       categoria: 'Inovação & Governo Digital',
+      modalidade: 'EAD',
       secretariaId: setp.id,
+      trilhaId: trilhaIntegracao.id,
       capaUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=80',
     },
   });
@@ -174,16 +236,7 @@ async function main() {
       duracaoMin: 15,
       ordem: 1,
       moduleId: modInov1.id,
-      texto: `
-### Transformação Digital no Serviço Público Municipal
-
-A Prefeitura Municipal de Vitória da Conquista vem adotando estratégias de modernização dos serviços públicos para garantir agilidade, transparência e redução do uso de papel.
-
-#### Objetivos Chave:
-1. **Atendimento Digital ao Cidadão:** Reduzir filas presenciais integrando solicitações online.
-2. **Tramitação Eletrônica de Processos:** Agilizar despachos entre secretarias como SMS, SMED e SETP.
-3. **Eficiência no Gasto Público:** Redução drástica com impressões e insumos físicos.
-      `,
+      texto: 'A Prefeitura de Vitória da Conquista vem adotando estratégias de modernização dos serviços públicos para garantir agilidade e transparência.',
     },
   });
 
@@ -195,169 +248,38 @@ A Prefeitura Municipal de Vitória da Conquista vem adotando estratégias de mod
       duracaoMin: 20,
       ordem: 2,
       moduleId: modInov1.id,
-      texto: 'Assista ao vídeo explicativo sobre como o portal da prefeitura integra os serviços das secretarias municipais.',
     },
   });
 
-  const quizDataInov = JSON.stringify({
-    questions: [
-      {
-        id: 1,
-        question: 'Qual é o objetivo principal do Governo Digital na PMVC?',
-        options: [
-          'Aumentar a burocracia presencial',
-          'Tornar os serviços mais ágeis, transparentes e acessíveis ao cidadão',
-          'Eliminar a comunicação entre secretarias',
-          'Substituir todos os servidores por robôs'
-        ],
-        correctIndex: 1
-      },
-      {
-        id: 2,
-        question: 'Qual das opções representa um benefício direto do Atendimento Sem Papel?',
-        options: [
-          'Economia de recursos públicos e agilidade em processos',
-          'Necessidade de maiores espaços físicos de arquivo',
-          'Aumento no tempo de resposta das solicitações',
-          'Dificuldade no rastreamento de documentos'
-        ],
-        correctIndex: 0
-      }
-    ]
-  });
-
-  const lInov3 = await prisma.lesson.create({
-    data: {
-      titulo: 'Aula 3: Quiz - Verificação do Módulo 1',
-      tipo: 'QUIZ',
-      duracaoMin: 10,
-      ordem: 3,
-      moduleId: modInov1.id,
-      quizData: quizDataInov,
-    },
-  });
-
-  // Módulo 2 do Curso 1
-  const modInov2 = await prisma.module.create({
-    data: {
-      titulo: 'Módulo 2: Gestão Ágil de Projetos e Cultura de Inovação',
-      ordem: 2,
-      courseId: cursoInovacao.id,
-    },
-  });
-
-  const lInov4 = await prisma.lesson.create({
-    data: {
-      titulo: 'Aula 4: Diretrizes de Inovação CETI 2026',
-      tipo: 'PDF',
-      conteudoUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      duracaoMin: 15,
-      ordem: 1,
-      moduleId: modInov2.id,
-      texto: 'Documento PDF com os princípios orientadores do edital de inovação municipal CETI.',
-    },
-  });
-
-  // Curso 2: LGPD Aplicada
-  const cursoLgpd = await prisma.course.create({
-    data: {
-      titulo: 'LGPD Aplicada ao Setor Público Municipal',
-      descricao: 'Treinamento sobre a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), boas práticas de privacidade e segurança da informação para servidores da PMVC.',
-      cargaHoraria: 30,
-      categoria: 'Legislação & Segurança',
-      capaUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80',
-    },
-  });
-
-  const modLgpd1 = await prisma.module.create({
-    data: {
-      titulo: 'Módulo 1: Proteção de Dados Pessoais e Direitos do Cidadão',
-      ordem: 1,
-      courseId: cursoLgpd.id,
-    },
-  });
-
-  const lLgpd1 = await prisma.lesson.create({
-    data: {
-      titulo: 'Aula 1: Fundamentos da LGPD para Servidores Públicos',
-      tipo: 'TEXTO',
-      duracaoMin: 20,
-      ordem: 1,
-      moduleId: modLgpd1.id,
-      texto: `
-### A LGPD no Âmbito Municipal
-
-A Lei nº 13.709/2018 regendo o tratamento de dados pessoais no Brasil exige responsabilidade reforçada dos órgãos da administração pública direta e indireta.
-
-#### Princípios Fundamentais:
-1. **Finalidade:** O tratamento de dados deve atender a propósitos legítimos e específicos informados ao cidadão.
-2. **Necessidade:** Coleta estritamente limitada ao mínimo necessário para a execução de políticas públicas.
-3. **Transparência:** Garantia de informações claras e precisas sobre o tratamento de dados.
-      `,
-    },
-  });
-
-  const quizDataLgpd = JSON.stringify({
-    questions: [
-      {
-        id: 1,
-        question: 'O que define o princípio da Necessidade na LGPD?',
-        options: [
-          'Coletar todos os dados possíveis para uso futuro',
-          'Limitar o tratamento ao mínimo de dados necessários para a finalidade pública',
-          'Compartilhar dados abertamente com terceiros sem consentimento',
-          'Armazenar dados indefinidamente sem prazo de validade'
-        ],
-        correctIndex: 1
-      }
-    ]
-  });
-
-  const lLgpd2 = await prisma.lesson.create({
-    data: {
-      titulo: 'Aula 2: Quiz - Avaliação de Conformidade LGPD',
-      tipo: 'QUIZ',
-      duracaoMin: 10,
-      ordem: 2,
-      moduleId: modLgpd1.id,
-      quizData: quizDataLgpd,
-    },
-  });
-
-  console.log('✅ Cursos, Módulos, Aulas e Quizzes criados com sucesso');
-
-  // 5. Inscrição de exemplo, Progresso, Badges Ganhas e Certificado de Teste
+  // 7. Matrícula, Progresso, Passaporte e Certificados
   const enrollment = await prisma.enrollment.create({
     data: {
       userId: servidor.id,
       courseId: cursoInovacao.id,
       progress: 100.0,
+      statusConclusao: 'CONCLUIDO',
+      pontuacaoConquistada: 400,
       completedAt: new Date(),
     },
   });
 
-  // Marcar lições do curso 1 como completadas pelo Servidor
   await prisma.lessonProgress.create({ data: { userId: servidor.id, lessonId: lInov1.id, completed: true } });
   await prisma.lessonProgress.create({ data: { userId: servidor.id, lessonId: lInov2.id, completed: true } });
-  await prisma.lessonProgress.create({ data: { userId: servidor.id, lessonId: lInov3.id, completed: true } });
-  await prisma.lessonProgress.create({ data: { userId: servidor.id, lessonId: lInov4.id, completed: true } });
 
-  // Atribuir Badges ao Servidor
-  await prisma.userBadge.create({
+  await prisma.userBadge.create({ data: { userId: servidor.id, badgeId: badgePioneiro.id } });
+  await prisma.userBadge.create({ data: { userId: servidor.id, badgeId: badgeInovador.id } });
+
+  // Passaporte de Pontuação
+  await prisma.passaportePontuacao.create({
     data: {
       userId: servidor.id,
-      badgeId: badgePioneiro.id,
+      pontosAnoCorrente: 350,
+      pontosAcumuladosTotal: 1240,
+      badgesSelosJson: JSON.stringify(['Pioneiro Conquista', 'Servidor Inovador']),
     },
   });
 
-  await prisma.userBadge.create({
-    data: {
-      userId: servidor.id,
-      badgeId: badgeInovador.id,
-    },
-  });
-
-  // Criar Certificado Emitido
+  // Certificado Emitido Nativamente
   const certificadoCodigo = 'CS-PMVC-2026-987654';
   await prisma.certificate.create({
     data: {
@@ -369,40 +291,24 @@ A Lei nº 13.709/2018 regendo o tratamento de dados pessoais no Brasil exige res
     },
   });
 
-  // Tópico no Fórum de Dúvidas
-  await prisma.forumPost.create({
+  // Certificado Externo Enviado
+  await prisma.certificadoExterno.create({
     data: {
-      titulo: 'Como solicitar integração de novos fluxos de processos entre SETP e SMS?',
-      conteudo: 'Olá colegas! Gostaria de saber qual é o procedimento ideal para sugerir a automatização de um formulário de encaminhamento entre a Secretaria de Transparência e a Saúde.',
       userId: servidor.id,
-      courseId: cursoInovacao.id,
+      instituicaoEmissora: 'ENAP - Escola Nacional de Administração Pública',
+      tituloCurso: 'Gestão Estratégica no Setor Público',
+      cargaHoraria: 20,
+      statusHomologacao: 'APROVADO',
+      urlArquivoPdf: 'https://exemplo.com/certificados/enap-carlos.pdf',
     },
   });
 
-  // Audit Logs de Teste
+  // Log de Auditoria LGPD
   await prisma.auditLog.create({
     data: {
       userId: servidor.id,
       acao: 'LOGIN',
       detalhes: 'Login simulado via SSO Municipal por CPF/Matrícula',
-      ipAddress: '127.0.0.1',
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: servidor.id,
-      acao: 'ACEITE_LGPD',
-      detalhes: 'Aceite do Termo de Consentimento e Privacidade da PMVC',
-      ipAddress: '127.0.0.1',
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: servidor.id,
-      acao: 'CURSO_CONCLUIDO',
-      detalhes: `Conclusão do Curso ${cursoInovacao.titulo} (40h) com emissão de certificado ${certificadoCodigo}`,
       ipAddress: '127.0.0.1',
     },
   });
