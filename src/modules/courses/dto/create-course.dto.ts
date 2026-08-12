@@ -36,4 +36,9 @@ export class CreateCourseDto {
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean;
+
+  @ApiPropertyOptional({ example: 'uuid-trilha', description: 'ID da trilha associada (opcional)' })
+  @IsString()
+  @IsOptional()
+  trilhaId?: string;
 }

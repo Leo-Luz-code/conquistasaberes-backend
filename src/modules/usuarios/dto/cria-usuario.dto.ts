@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEmail } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsOptional, IsBoolean } from 'class-validator';
 import { Role } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -34,4 +34,14 @@ export class CriaUsuarioDto {
 
   @ApiProperty({ enum: Role })
   readonly role: Role;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  readonly senha: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({ required: false })
+  readonly statusAtivo?: boolean;
 }
