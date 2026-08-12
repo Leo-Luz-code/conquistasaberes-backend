@@ -12,6 +12,8 @@ import { ForumModule } from './modules/forum/forum.module';
 import { RecommendationModule } from './modules/recommendation/recommendation.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { LearningPathsModule } from './modules/learning-paths/learning-paths.module';
+import { SecretariasModule } from './modules/secretarias/secretarias.module';
+import { NoticiasModule } from './modules/noticias/noticias.module';
 import { EixosModule } from './modules/eixos/eixos.module';
 import { LibraryModule } from './library/library.module';
 
@@ -29,6 +31,8 @@ import { LibraryModule } from './library/library.module';
     RecommendationModule,
     AnalyticsModule,
     LearningPathsModule,
+    SecretariasModule,
+    NoticiasModule,
     EixosModule,
     LibraryModule
   ],

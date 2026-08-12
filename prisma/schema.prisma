@@ -23,9 +23,18 @@ model Secretaria {
   nome  String @map("nome_secretaria")
   sigla String @unique
 
+  descricao          String?
+  responsavelNome    String?  @map("responsavel_nome")
+  responsavelEmail   String?  @map("responsavel_email")
+  telefone           String?
+  endereco           String?
+  corIdentificacao   String?  @map("cor_identificacao")
+  ativa              Boolean  @default(true)
+
   users      User[]
   servidores Servidor[]
   courses    Course[]
+  noticias   Noticia[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -418,4 +427,28 @@ model Biblioteca {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
+}
+
+// 20. NOTÍCIAS & COMUNICADOS INSTITUCIONAIS
+model Noticia {
+  id           String   @id @default(uuid())
+  titulo       String
+  subtitulo    String?
+  conteudo     String
+  categoria    String   @default("Geral")
+  capaUrl      String?  @map("capa_url")
+  destaque     Boolean  @default(false)
+  publicada    Boolean  @default(true)
+  visualizacoes Int     @default(0)
+  autorNome    String?  @map("autor_nome")
+
+  secretariaAlvoId String?     @map("fk_secretaria_alvo")
+  secretariaAlvo   Secretaria? @relation(fields: [secretariaAlvoId], references: [id])
+
+  dataPublicacao DateTime @default(now()) @map("data_publicacao")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@map("noticias")
 }
