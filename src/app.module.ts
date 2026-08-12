@@ -12,6 +12,8 @@ import { ForumModule } from './modules/forum/forum.module';
 import { RecommendationModule } from './modules/recommendation/recommendation.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { LearningPathsModule } from './modules/learning-paths/learning-paths.module';
+import { SecretariasModule } from './modules/secretarias/secretarias.module';
+import { NoticiasModule } from './modules/noticias/noticias.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { LearningPathsModule } from './modules/learning-paths/learning-paths.mod
     RecommendationModule,
     AnalyticsModule,
     LearningPathsModule,
+    SecretariasModule,
+    NoticiasModule,
   ],
 })
 export class AppModule {}

@@ -11,6 +11,7 @@ async function main() {
   console.log('🌱 Iniciando Seeding do Conquista Saberes AVA Municipal (Modelo Unificado)...');
 
   // Limpar tabelas existentes em ordem respeitando FKs
+  await prisma.noticia.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.forumComment.deleteMany();
   await prisma.forumPost.deleteMany();
@@ -37,6 +38,12 @@ async function main() {
     data: {
       nome: 'Secretaria Municipal de Transparência, Controle e Governança',
       sigla: 'SETP',
+      descricao: 'Promoção da integridade pública, controle interno e governança.',
+      responsavelNome: 'Dr. Roberto Mendes',
+      responsavelEmail: 'roberto.mendes@pmvc.ba.gov.br',
+      telefone: '(77) 3429-9000',
+      endereco: 'Praça Joaquim Correia, 55 - Centro',
+      corIdentificacao: '#8B5CF6',
     },
   });
 
@@ -44,6 +51,12 @@ async function main() {
     data: {
       nome: 'Secretaria Municipal de Saúde',
       sigla: 'SMS',
+      descricao: 'Gestão da rede pública de saúde, atenção primária e vigilância.',
+      responsavelNome: 'Dra. Ana Paula Oliveira',
+      responsavelEmail: 'ana.oliveira@pmvc.ba.gov.br',
+      telefone: '(77) 3429-7000',
+      endereco: 'Av. Maceió, 98 - Brasil',
+      corIdentificacao: '#10B981',
     },
   });
 
@@ -51,6 +64,12 @@ async function main() {
     data: {
       nome: 'Secretaria Municipal de Educação',
       sigla: 'SMED',
+      descricao: 'Coordenação do ensino municipal e formação continuada.',
+      responsavelNome: 'Prof. Carlos Eduardo Santos',
+      responsavelEmail: 'carlos.santos@pmvc.ba.gov.br',
+      telefone: '(77) 3429-8000',
+      endereco: 'Rua Siqueira Campos, 184 - Centro',
+      corIdentificacao: '#3B82F6',
     },
   });
 
@@ -310,6 +329,33 @@ async function main() {
       acao: 'LOGIN',
       detalhes: 'Login simulado via SSO Municipal por CPF/Matrícula',
       ipAddress: '127.0.0.1',
+    },
+  });
+
+  // 12. Notícias Institucionais
+  await prisma.noticia.create({
+    data: {
+      titulo: 'Prefeitura lança a Universidade do Servidor Público — UniVC',
+      subtitulo: 'Iniciativa marca um novo ciclo de valorização e capacitação dos servidores de Conquista.',
+      conteudo: 'A Prefeitura Municipal de Vitória da Conquista, por meio do CETI, lançou o Ambiente Virtual de Aprendizagem Conquista Saberes / UniVC com cursos EAD e gamificação.',
+      categoria: 'Destaque',
+      capaUrl: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop',
+      destaque: true,
+      publicada: true,
+      autorNome: 'Assessoria CETI',
+    },
+  });
+
+  await prisma.noticia.create({
+    data: {
+      titulo: 'Nova trilha de capacitação em atendimento ao cidadão',
+      subtitulo: 'Conjunto de cursos voltados ao atendimento humanizado e comunicação não violenta.',
+      conteudo: 'Capacitação prática para servidores que lidam diretamente com o atendimento ao público em Conquista.',
+      categoria: 'Trilhas',
+      capaUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop',
+      destaque: false,
+      publicada: true,
+      autorNome: 'Coordenação UniVC',
     },
   });
 
