@@ -42,6 +42,7 @@ export class CoursesService {
       where,
       include: {
         secretaria: true,
+        trilha: { select: { id: true, tituloTrilha: true } },
         _count: {
           select: { modules: true, enrollments: true },
         },
@@ -57,6 +58,7 @@ export class CoursesService {
       categoria: course.categoria,
       capaUrl: course.capaUrl,
       secretaria: course.secretaria,
+      trilha: course.trilha,
       modulosCount: course._count.modules,
       inscritosCount: course._count.enrollments,
     }));
@@ -67,6 +69,7 @@ export class CoursesService {
       where: { id, deletedAt: null },
       include: {
         secretaria: true,
+        trilha: true,
         modules: {
           where: { deletedAt: null },
           orderBy: { ordem: 'asc' },
@@ -326,6 +329,7 @@ export class CoursesService {
       where: { deletedAt: null },
       include: {
         secretaria: true,
+        trilha: { select: { id: true, tituloTrilha: true } },
         modules: {
           where: { deletedAt: null },
           orderBy: { ordem: 'asc' },
@@ -353,6 +357,7 @@ export class CoursesService {
         categoria: dto.categoria || 'Geral',
         capaUrl: dto.capaUrl,
         secretariaId: dto.secretariaId || null,
+        trilhaId: dto.trilhaId || null,
         isPublished: dto.isPublished ?? true,
       },
     });

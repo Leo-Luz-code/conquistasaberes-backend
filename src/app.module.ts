@@ -12,6 +12,7 @@ import { ForumModule } from './modules/forum/forum.module';
 import { RecommendationModule } from './modules/recommendation/recommendation.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { LearningPathsModule } from './modules/learning-paths/learning-paths.module';
+import { EixosModule } from './modules/eixos/eixos.module';
 import { LibraryModule } from './library/library.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { LibraryModule } from './library/library.module';
     RecommendationModule,
     AnalyticsModule,
     LearningPathsModule,
+    EixosModule,
     LibraryModule
   ],
 })
