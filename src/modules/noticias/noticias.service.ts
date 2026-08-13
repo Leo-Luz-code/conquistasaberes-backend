@@ -7,10 +7,17 @@ import { UpdateNoticiaDto } from './dto/update-noticia.dto';
 export class NoticiasService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(onlyPublished = false) {
+  async findAll(onlyPublished = false, secretariaId?: string) {
     const whereClause: any = { deletedAt: null };
     if (onlyPublished) {
       whereClause.publicada = true;
+    }
+    if (secretariaId) {
+      // Retorna notícias destinadas a toda a prefeitura (null) OU destinadas especificamente a esta secretaria
+      whereClause.OR = [
+        { secretariaAlvoId: null },
+        { secretariaAlvoId: secretariaId },
+      ];
     }
 
     const noticias = await this.prisma.noticia.findMany({

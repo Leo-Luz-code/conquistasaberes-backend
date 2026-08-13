@@ -27,9 +27,12 @@ export class NoticiasController {
   @ApiOperation({ summary: 'Listar todas as notícias para o portal de notícias ou painel' })
   @ApiResponse({ status: 200, description: 'Lista de notícias retornada com sucesso' })
   @Get()
-  findAll(@Query('onlyPublished') onlyPublished?: string) {
+  findAll(
+    @Query('onlyPublished') onlyPublished?: string,
+    @Query('secretariaId') secretariaId?: string,
+  ) {
     const isPublished = onlyPublished === 'true';
-    return this.noticiasService.findAll(isPublished);
+    return this.noticiasService.findAll(isPublished, secretariaId);
   }
 
   @ApiOperation({ summary: 'Obter detalhes e conteúdo completo de uma notícia' })
