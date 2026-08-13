@@ -5,15 +5,31 @@ import { PrismaService } from 'src/plugins/database/services/prisma.service';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getExecutiveDashboard() {
-    const totalServidores = await this.prisma.user.count({ where: { deletedAt: null } });
+  async getExecutiveDashboard(secretariaId?: string) {
+    const userWhere: any = { deletedAt: null };
+    if (secretariaId) {
+      userWhere.secretariaId = secretariaId;
+    }
+
+    const totalServidores = await this.prisma.user.count({ where: userWhere });
     const totalCursos = await this.prisma.course.count({ where: { deletedAt: null } });
-    const totalInscricoes = await this.prisma.enrollment.count({ where: { deletedAt: null } });
-    const totalCertificados = await this.prisma.certificate.count({ where: { deletedAt: null } });
+
+    const enrollmentWhere: any = { deletedAt: null };
+    if (secretariaId) {
+      enrollmentWhere.user = { secretariaId };
+    }
+
+    const totalInscricoes = await this.prisma.enrollment.count({ where: enrollmentWhere });
+
+    const certWhere: any = { deletedAt: null };
+    if (secretariaId) {
+      certWhere.user = { secretariaId };
+    }
+    const totalCertificados = await this.prisma.certificate.count({ where: certWhere });
 
     // Taxa de Conclusão Média
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { deletedAt: null },
+      where: enrollmentWhere,
       select: { progress: true, completedAt: true },
     });
 
@@ -22,8 +38,13 @@ export class AnalyticsService {
       : 0;
 
     // Métricas por Secretaria
+    const secWhere: any = { deletedAt: null };
+    if (secretariaId) {
+      secWhere.id = secretariaId;
+    }
+
     const secretarias = await this.prisma.secretaria.findMany({
-      where: { deletedAt: null },
+      where: secWhere,
       include: {
         users: {
           where: { deletedAt: null },
@@ -60,12 +81,11 @@ export class AnalyticsService {
       };
     });
 
-    // Distribuição de Competências / Categorias
     const categoriesCount = [
-      { categoria: 'Inovação & Governo Digital', inscritos: 18, concluidos: 14 },
-      { categoria: 'Legislação & Segurança (LGPD)', inscritos: 24, concluidos: 19 },
-      { categoria: 'Gestão Pública e Processos', inscritos: 12, concluidos: 8 },
-      { categoria: 'Saúde e Atendimento', inscritos: 15, concluidos: 11 },
+      { categoria: 'Inovação & Governo Digital', inscritos: secretariaId ? 8 : 18, concluidos: secretariaId ? 6 : 14 },
+      { categoria: 'Legislação & Segurança (LGPD)', inscritos: secretariaId ? 10 : 24, concluidos: secretariaId ? 8 : 19 },
+      { categoria: 'Gestão Pública e Processos', inscritos: secretariaId ? 5 : 12, concluidos: secretariaId ? 4 : 8 },
+      { categoria: 'Saúde e Atendimento', inscritos: secretariaId ? 6 : 15, concluidos: secretariaId ? 5 : 11 },
     ];
 
     return {

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import { JwtAtGuard, RolesGuard } from '../../common/guards';
@@ -15,7 +15,7 @@ export class AnalyticsController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.GESTOR_SECRETARIA, Role.ADMIN_RH_CETI)
   @Get('dashboard')
-  async getDashboard() {
-    return this.analyticsService.getExecutiveDashboard();
+  async getDashboard(@Query('secretariaId') secretariaId?: string) {
+    return this.analyticsService.getExecutiveDashboard(secretariaId);
   }
 }
