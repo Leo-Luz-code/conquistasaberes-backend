@@ -155,6 +155,47 @@ export class CoursesService {
     return newEnrollment;
   }
 
+  // Dor #1 & #2: Cursos do servidor autenticado com progresso e status
+  async findMyCourses(userId: string) {
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { userId, deletedAt: null },
+      include: {
+        course: {
+          include: {
+            secretaria: { select: { id: true, sigla: true, nome: true } },
+            trilha: { select: { id: true, tituloTrilha: true } },
+            _count: { select: { modules: true } },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return enrollments
+      .filter((e) => e.course.deletedAt === null)
+      .map((e) => {
+        let status: 'em_andamento' | 'concluido' | 'nao_iniciado' = 'nao_iniciado';
+        if (e.completedAt || e.progress >= 100) status = 'concluido';
+        else if (e.progress > 0) status = 'em_andamento';
+
+        return {
+          id: e.course.id,
+          titulo: e.course.titulo,
+          descricao: e.course.descricao,
+          cargaHoraria: e.course.cargaHoraria,
+          categoria: e.course.categoria,
+          capaUrl: e.course.capaUrl,
+          secretaria: e.course.secretaria,
+          trilha: e.course.trilha,
+          modulosCount: e.course._count.modules,
+          progresso: Math.round(e.progress),
+          status,
+          enrollmentId: e.id,
+          completedAt: e.completedAt,
+        };
+      });
+  }
+
   async completeLesson(lessonId: string, userId: string) {
     const lesson = await this.prisma.lesson.findFirst({
       where: { id: lessonId, deletedAt: null },

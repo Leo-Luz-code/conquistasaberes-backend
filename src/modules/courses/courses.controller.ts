@@ -85,6 +85,15 @@ export class CoursesController {
     return this.coursesService.getSecretarias();
   }
 
+  // Dor #1 & #2: Cursos do servidor com progresso real (deve vir antes de :id)
+  @ApiOperation({ summary: 'Listar cursos nos quais o servidor está matriculado (com progresso e status)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
+  @Get('my-courses')
+  async findMyCourses(@Request() req: any) {
+    return this.coursesService.findMyCourses(req.user.sub);
+  }
+
   @ApiOperation({ summary: 'Detalhes completos do curso e plano de aulas com status do servidor' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
