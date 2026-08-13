@@ -35,6 +35,7 @@ model Secretaria {
   servidores Servidor[]
   courses    Course[]
   noticias   Noticia[]
+  events Event[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -95,7 +96,8 @@ model User {
   forumPosts           ForumPost[]
   comments             ForumComment[]
   auditLogs            AuditLog[]
-
+  eventEnrollments EventEnrollment[]
+  
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -451,4 +453,47 @@ model Noticia {
   deletedAt      DateTime? @map("deleted_at")
 
   @@map("noticias")
+}
+
+// 21. Eventos
+model Event {
+  id           String   @id @default(uuid())
+  titulo       String   @map("titulo_evento")
+  descricao    String?  @db.Text
+  categoria    String   @default("Palestra") // Ex: Palestra, Workshop, Reunião
+  dataInicio   DateTime @map("data_inicio")   // Data e hora de início (ex: 15 de maio às 14h)
+  dataFim      DateTime @map("data_fim")      // Data e hora de término (ex: 15 de maio às 17h)
+  local        String?  // Ex: Auditório Prefeitura
+  modalidade   String   @default("PRESENCIAL") // PRESENCIAL, ONLINE, HIBRIDO
+  vagas        Int?     // Limite de vagas opcional
+  capaUrl      String?  @map("capa_url")
+
+  secretariaId String?     @map("fk_secretaria")
+  secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
+
+  inscricoes   EventEnrollment[]
+
+  isPublished  Boolean   @default(true) @map("is_published")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("events")
+}
+
+// 22. INSCRIÇÃO EM EVENTOS
+model EventEnrollment {
+  id               String   @id @default(uuid())
+  userId           String   @map("fk_usuario")
+  eventId          String   @map("fk_evento")
+  user             User     @relation(fields: [userId], references: [id])
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  presencaValidada Boolean  @default(false) @map("presenca_validada")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([userId, eventId])
+  @@map("event_enrollments")
 }

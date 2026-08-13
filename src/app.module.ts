@@ -15,7 +15,8 @@ import { LearningPathsModule } from './modules/learning-paths/learning-paths.mod
 import { SecretariasModule } from './modules/secretarias/secretarias.module';
 import { NoticiasModule } from './modules/noticias/noticias.module';
 import { EixosModule } from './modules/eixos/eixos.module';
-import { LibraryModule } from './library/library.module';
+import { LibraryModule } from './modules/library/library.module';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { LibraryModule } from './library/library.module';
     SecretariasModule,
     NoticiasModule,
     EixosModule,
-    LibraryModule
+    LibraryModule,
+    EventsModule
   ],
 })
 export class AppModule {}
