@@ -18,4 +18,13 @@ export class AnalyticsController {
   async getDashboard(@Query('secretariaId') secretariaId?: string) {
     return this.analyticsService.getExecutiveDashboard(secretariaId);
   }
+
+  @ApiOperation({ summary: 'Resumo de indicadores para a página de Administração' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard, RolesGuard)
+  @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
+  @Get('admin-summary')
+  async getAdminSummary() {
+    return this.analyticsService.getAdminSummary();
+  }
 }
