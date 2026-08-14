@@ -52,7 +52,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Conquista Saberes - AVA Municipal PMVC')
+    .setTitle('AVA UniVC - Ambiente Virtual de Aprendizagem PMVC')
     .setDescription(
       'API Oficial do Ambiente Virtual de Aprendizagem da Prefeitura Municipal de Vitória da Conquista (CETI / SETP)',
     )
@@ -136,10 +136,13 @@ async function bootstrap() {
     );
   }
 
-  await app.listen(HTTP_PORT, () => {
+  const { getLocalIpAddress } = require('./common/utils/network.util');
+  const localIp = getLocalIpAddress();
+
+  await app.listen(HTTP_PORT, '0.0.0.0', () => {
     const address =
-      'http' + (ssl ? 's' : '') + '://' + APP_HOSTNAME + ':' + HTTP_PORT + '/';
-    Logger.log('Listening at ' + address);
+      'http' + (ssl ? 's' : '') + '://' + localIp + ':' + HTTP_PORT + '/';
+    Logger.log('🚀 Servidor rodando em ' + address + ' (Disponível na rede local)');
   });
 }
 

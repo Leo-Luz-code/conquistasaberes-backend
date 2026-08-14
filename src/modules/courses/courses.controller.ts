@@ -50,8 +50,9 @@ export class CoursesController {
     if (!file) {
       return { url: null };
     }
+    const { getLocalIpAddress } = require('../../common/utils/network.util');
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.get('host') || 'localhost:3001';
+    const host = req.get('host') || `${getLocalIpAddress()}:3001`;
     const fullUrl = `${protocol}://${host}/uploads/${file.filename}`;
     return {
       url: fullUrl,
