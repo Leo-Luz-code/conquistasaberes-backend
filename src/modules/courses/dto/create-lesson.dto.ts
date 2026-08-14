@@ -7,9 +7,9 @@ export class CreateLessonDto {
   @IsNotEmpty()
   titulo: string;
 
-  @ApiProperty({ example: 'VIDEO', description: 'Tipo da aula: VIDEO, TEXTO, PDF, QUIZ' })
+  @ApiProperty({ example: 'VIDEO', description: 'Tipo da aula: VIDEO, TEXTO, PDF, QUIZ, AULA_PRESENCIAL' })
   @IsString()
-  @IsIn(['VIDEO', 'TEXTO', 'PDF', 'QUIZ'])
+  @IsIn(['VIDEO', 'TEXTO', 'PDF', 'QUIZ', 'AULA_PRESENCIAL'])
   tipo: string;
 
   @ApiPropertyOptional({ example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', description: 'URL do vídeo ou PDF' })

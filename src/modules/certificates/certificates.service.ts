@@ -158,7 +158,7 @@ export class CertificatesService {
         .fontSize(14)
         .font('Helvetica')
         .text(
-          `concluiu com êxito na plataforma Conquista Saberes o curso de capacitação:`,
+          `concluiu com êxito na plataforma AVA UniVC o curso de capacitação:`,
           0,
           300,
           { align: 'center' },

@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
-import { CertificateStatus } from '@prisma/client';
+import { CertificateStatus, Role } from '@prisma/client';
 import { GamificationService } from '../gamification/gamification.service';
 import {
   CreateCourseDto,
@@ -395,9 +395,23 @@ export class CoursesService {
     });
   }
 
-  async findAllAdmin() {
+  async findAllAdmin(userId?: string, userRole?: Role) {
+    const whereClause: any = { deletedAt: null };
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { secretariaId: true },
+      });
+
+      whereClause.OR = [
+        { criadorId: userId },
+        ...(user?.secretariaId ? [{ criadorId: null, secretariaId: user.secretariaId }] : []),
+      ];
+    }
+
     return this.prisma.course.findMany({
-      where: { deletedAt: null },
+      where: whereClause,
       include: {
         secretaria: true,
         trilha: { select: { id: true, tituloTrilha: true } },
@@ -412,14 +426,14 @@ export class CoursesService {
           },
         },
         _count: {
-          select: { enrollments: true },
+           select: { enrollments: true },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async createCourse(dto: CreateCourseDto) {
+  async createCourse(dto: CreateCourseDto, criadorId?: string) {
     return this.prisma.course.create({
       data: {
         titulo: dto.titulo,
@@ -430,13 +444,20 @@ export class CoursesService {
         secretariaId: dto.secretariaId || null,
         trilhaId: dto.trilhaId || null,
         isPublished: dto.isPublished ?? true,
+        criadorId: criadorId || null,
       },
     });
   }
 
-  async updateCourse(id: string, dto: UpdateCourseDto) {
+  async updateCourse(id: string, dto: UpdateCourseDto, userId?: string, userRole?: Role) {
     const course = await this.prisma.course.findFirst({ where: { id, deletedAt: null } });
     if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (course.criadorId && course.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para gerenciar os cursos criados por você.');
+      }
+    }
 
     return this.prisma.course.update({
       where: { id },
@@ -444,9 +465,15 @@ export class CoursesService {
     });
   }
 
-  async deleteCourse(id: string) {
+  async deleteCourse(id: string, userId?: string, userRole?: Role) {
     const course = await this.prisma.course.findFirst({ where: { id, deletedAt: null } });
     if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (course.criadorId && course.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para excluir os cursos criados por você.');
+      }
+    }
 
     return this.prisma.course.update({
       where: { id },
@@ -532,6 +559,246 @@ export class CoursesService {
     });
 
     return updated;
+  }
+
+  // =========================================================================
+  // PRESENÇAS E CHECK-IN DE AULA PRESENCIAL
+  // =========================================================================
+
+  async checkinLesson(lessonId: string, matricula: string) {
+    const cleanIdentifier = matricula.trim();
+
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, deletedAt: null },
+      include: { module: { include: { course: true } } },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('Aula não encontrada.');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { matricula: cleanIdentifier },
+          { cpf: cleanIdentifier },
+        ],
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Nenhum servidor foi localizado com a matrícula/identificador "${cleanIdentifier}".`,
+      );
+    }
+
+    const courseId = lesson.module.courseId;
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        courseId,
+        userId: user.id,
+        deletedAt: null,
+      },
+    });
+
+    if (!enrollment) {
+      throw new BadRequestException(
+        `O servidor ${user.nome} (Matrícula: ${user.matricula}) não está matriculado no curso "${lesson.module.course.titulo}". É necessário se matricular antes de registrar presença.`,
+      );
+    }
+
+    // Verificar se já possui presença confirmada
+    const existingProgress = await this.prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: user.id, lessonId } },
+    });
+
+    if (existingProgress && existingProgress.completed) {
+      const dataFormatada = new Date(existingProgress.updatedAt).toLocaleString('pt-BR');
+      return {
+        success: true,
+        alreadyConfirmed: true,
+        message: `Presença já havia sido confirmada anteriormente (${dataFormatada}).`,
+        aulaTitulo: lesson.titulo,
+        cursoTitulo: lesson.module.course.titulo,
+        servidorNome: user.nome,
+        matricula: user.matricula,
+        timestamp: existingProgress.updatedAt,
+      };
+    }
+
+    // Processar conclusão da aula (concede XP, calcula progresso, badges, certificados)
+    const completionResult = await this.completeLesson(lessonId, user.id);
+
+    // Log de auditoria
+    await this.prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        acao: 'PRESENCA_AULA_CONFIRMADA',
+        detalhes: `Presença confirmada na aula presencial: ${lesson.titulo} (Curso: ${lesson.module.course.titulo})`,
+      },
+    });
+
+    return {
+      success: true,
+      alreadyConfirmed: false,
+      message: 'Presença confirmada com sucesso na aula presencial!',
+      aulaTitulo: lesson.titulo,
+      cursoTitulo: lesson.module.course.titulo,
+      servidorNome: user.nome,
+      matricula: user.matricula,
+      timestamp: new Date(),
+      gainedXp: completionResult.gainedXp,
+      courseProgress: completionResult.courseProgress,
+    };
+  }
+
+  async getLessonPublicInfo(lessonId: string) {
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, deletedAt: null },
+      include: {
+        module: {
+          select: {
+            id: true,
+            titulo: true,
+            course: {
+              select: {
+                id: true,
+                titulo: true,
+                cargaHoraria: true,
+                capaUrl: true,
+                secretaria: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('Aula não encontrada.');
+    }
+
+    return {
+      id: lesson.id,
+      titulo: lesson.titulo,
+      tipo: lesson.tipo,
+      duracaoMin: lesson.duracaoMin,
+      xp: lesson.xp,
+      dataHoraAgendada: lesson.dataHoraAgendada,
+      modulo: {
+        id: lesson.module.id,
+        titulo: lesson.module.titulo,
+      },
+      curso: lesson.module.course,
+    };
+  }
+
+  async getLessonAttendances(lessonId: string) {
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, deletedAt: null },
+      include: { module: true },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('Aula não encontrada.');
+    }
+
+    const courseId = lesson.module.courseId;
+
+    // Buscar todos os matriculados no curso
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nome: true,
+            matricula: true,
+            email: true,
+            cargo: true,
+            secretaria: true,
+          },
+        },
+      },
+      orderBy: { user: { nome: 'asc' } },
+    });
+
+    // Buscar progressos desta aula específica
+    const progresses = await this.prisma.lessonProgress.findMany({
+      where: {
+        lessonId,
+        completed: true,
+      },
+    });
+
+    const progressMap = new Map(progresses.map((p) => [p.userId, p]));
+
+    return {
+      lesson: {
+        id: lesson.id,
+        titulo: lesson.titulo,
+        tipo: lesson.tipo,
+        duracaoMin: lesson.duracaoMin,
+      },
+      totalMatriculados: enrollments.length,
+      totalPresentes: progresses.length,
+      attendances: enrollments.map((enr) => {
+        const prog = progressMap.get(enr.userId);
+        return {
+          enrollmentId: enr.id,
+          userId: enr.user.id,
+          nome: enr.user.nome,
+          matricula: enr.user.matricula,
+          email: enr.user.email,
+          cargo: enr.user.cargo,
+          secretaria: enr.user.secretaria?.sigla || 'Geral',
+          presencaConfirmada: !!prog,
+          presencaEm: prog ? prog.updatedAt : null,
+        };
+      }),
+    };
+  }
+
+  async getCourseEnrollments(courseId: string) {
+    const course = await this.prisma.course.findFirst({
+      where: { id: courseId, deletedAt: null },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Curso não encontrado.');
+    }
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nome: true,
+            matricula: true,
+            email: true,
+            cargo: true,
+            secretaria: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return enrollments.map((enr) => ({
+      id: enr.id,
+      userId: enr.user.id,
+      nome: enr.user.nome,
+      matricula: enr.user.matricula,
+      email: enr.user.email,
+      cargo: enr.user.cargo,
+      secretaria: enr.user.secretaria?.sigla || 'Geral',
+      progress: Math.round(enr.progress),
+      statusConclusao: enr.statusConclusao,
+      completedAt: enr.completedAt,
+      createdAt: enr.createdAt,
+    }));
   }
 
   // =========================================================================

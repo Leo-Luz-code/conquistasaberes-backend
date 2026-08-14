@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { Role } from '@prisma/client';
 import { CreateLearningPathDto, UpdateLearningPathDto } from './dto';
 
 @Injectable()
@@ -222,23 +223,52 @@ export class LearningPathsService {
     return pathEnrollment;
   }
 
-  async create(dto: CreateLearningPathDto) {
+  async getAdminLearningPaths(userId?: string, userRole?: Role) {
+    const whereClause: any = { deletedAt: null };
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      whereClause.OR = [
+        { criadorId: userId },
+      ];
+    }
+
+    return this.prisma.learningPath.findMany({
+      where: whereClause,
+      include: {
+        eixo: true,
+        courses: {
+          where: { deletedAt: null },
+          include: { secretaria: true },
+        },
+      },
+      orderBy: { tituloTrilha: 'asc' },
+    });
+  }
+
+  async create(dto: CreateLearningPathDto, criadorId?: string) {
     return this.prisma.learningPath.create({
       data: {
         tituloTrilha: dto.tituloTrilha,
         cargaHorariaTotal: dto.cargaHorariaTotal,
+        capaUrl: dto.capaUrl || null,
         ...(dto.eixoId && { eixoId: dto.eixoId }),
+        criadorId: criadorId || null,
       },
     });
   }
 
-  async update(id: string, dto: UpdateLearningPathDto) {
+  async update(id: string, dto: UpdateLearningPathDto, userId?: string, userRole?: Role) {
     const trilhaExists = await this.prisma.learningPath.findFirst({
       where: { id, deletedAt: null },
     });
 
     if (!trilhaExists) {
       throw new NotFoundException('Trilha de aprendizagem não encontrada.');
+    }
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (trilhaExists.criadorId && trilhaExists.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para gerenciar as trilhas criadas por você.');
+      }
     }
 
     return this.prisma.learningPath.update({
@@ -247,11 +277,12 @@ export class LearningPathsService {
         ...(dto.tituloTrilha && { tituloTrilha: dto.tituloTrilha }),
         ...(dto.cargaHorariaTotal !== undefined && { cargaHorariaTotal: dto.cargaHorariaTotal }),
         ...(dto.eixoId !== undefined && { eixoId: dto.eixoId }),
+        ...(dto.capaUrl !== undefined && { capaUrl: dto.capaUrl }),
       },
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(id: string, userId?: string, userRole?: Role) {
     const trilhaExists = await this.prisma.learningPath.findFirst({
       where: { id, deletedAt: null },
     });
@@ -260,13 +291,33 @@ export class LearningPathsService {
       throw new NotFoundException('Trilha de aprendizagem não encontrada.');
     }
 
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (trilhaExists.criadorId && trilhaExists.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para excluir as trilhas criadas por você.');
+      }
+    }
+
     return this.prisma.learningPath.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async linkCourses(id: string, courseIds: string[]) {
+  async linkCourses(id: string, courseIds: string[], userId?: string, userRole?: Role) {
+    const trilhaExists = await this.prisma.learningPath.findFirst({
+      where: { id, deletedAt: null },
+    });
+
+    if (!trilhaExists) {
+      throw new NotFoundException('Trilha de aprendizagem não encontrada.');
+    }
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (trilhaExists.criadorId && trilhaExists.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para vincular cursos às trilhas criadas por você.');
+      }
+    }
+
     // 1. Desvincular todos os cursos atualmente nesta trilha que não estão na lista
     await this.prisma.course.updateMany({
       where: { trilhaId: id, id: { notIn: courseIds } },

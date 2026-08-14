@@ -15,6 +15,7 @@ import {
   UpdateModuleDto,
   CreateLessonDto,
   UpdateLessonDto,
+  CheckinLessonDto,
 } from './dto';
 
 @ApiTags('Catálogo de Cursos & AVA')
@@ -45,12 +46,18 @@ export class CoursesController {
       }),
     }),
   )
-  uploadFile(@UploadedFile() file: any) {
+  uploadFile(@UploadedFile() file: any, @Request() req: any) {
     if (!file) {
       return { url: null };
     }
+    const { getLocalIpAddress } = require('../../common/utils/network.util');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.get('host') || `${getLocalIpAddress()}:3001`;
+    const fullUrl = `${protocol}://${host}/uploads/${file.filename}`;
     return {
-      url: `/uploads/${file.filename}`,
+      url: fullUrl,
+      relativePath: `/uploads/${file.filename}`,
+      filename: file.filename,
       originalname: file.originalname,
       size: file.size,
     };
@@ -75,8 +82,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Get('admin/all')
-  async findAllAdmin() {
-    return this.coursesService.findAllAdmin();
+  async findAllAdmin(@Request() req: any) {
+    return this.coursesService.findAllAdmin(req.user?.sub, req.user?.role);
   }
 
   @ApiOperation({ summary: 'Listar secretarias municipais' })
@@ -128,8 +135,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Post()
-  async createCourse(@Body() dto: CreateCourseDto) {
-    return this.coursesService.createCourse(dto);
+  async createCourse(@Body() dto: CreateCourseDto, @Request() req: any) {
+    return this.coursesService.createCourse(dto, req.user?.sub);
   }
 
   @ApiOperation({ summary: 'Atualizar curso existente' })
@@ -137,8 +144,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Put(':id')
-  async updateCourse(@Param('id') id: string, @Body() dto: UpdateCourseDto) {
-    return this.coursesService.updateCourse(id, dto);
+  async updateCourse(@Param('id') id: string, @Body() dto: UpdateCourseDto, @Request() req: any) {
+    return this.coursesService.updateCourse(id, dto, req.user?.sub, req.user?.role);
   }
 
   @ApiOperation({ summary: 'Remover curso (Soft Delete)' })
@@ -146,8 +153,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Delete(':id')
-  async deleteCourse(@Param('id') id: string) {
-    return this.coursesService.deleteCourse(id);
+  async deleteCourse(@Param('id') id: string, @Request() req: any) {
+    return this.coursesService.deleteCourse(id, req.user?.sub, req.user?.role);
   }
 
   @ApiOperation({ summary: 'Criar módulo no curso' })
@@ -203,5 +210,43 @@ export class CoursesController {
   async deleteLesson(@Param('lessonId') lessonId: string) {
     return this.coursesService.deleteLesson(lessonId);
   }
+
+  // =========================================================================
+  // PRESENÇAS E CONTROLE DE MATRÍCULAS (CHECK-IN E GESTÃO)
+  // =========================================================================
+
+  @ApiOperation({ summary: 'Obter informações públicas da aula para página de check-in' })
+  @Get('lessons/:lessonId/public-info')
+  async getLessonPublicInfo(@Param('lessonId') lessonId: string) {
+    return this.coursesService.getLessonPublicInfo(lessonId);
+  }
+
+  @ApiOperation({ summary: 'Confirmar presença do servidor em aula presencial via QR Code' })
+  @Post('lessons/:lessonId/checkin')
+  async checkinLesson(
+    @Param('lessonId') lessonId: string,
+    @Body() dto: CheckinLessonDto,
+  ) {
+    return this.coursesService.checkinLesson(lessonId, dto.matricula);
+  }
+
+  @ApiOperation({ summary: 'Listar presenças de uma aula presencial (Visão Admin/Gestor)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard, RolesGuard)
+  @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
+  @Get('lessons/:lessonId/attendances')
+  async getLessonAttendances(@Param('lessonId') lessonId: string) {
+    return this.coursesService.getLessonAttendances(lessonId);
+  }
+
+  @ApiOperation({ summary: 'Listar todos os servidores matriculados no curso (Visão Admin/Gestor)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard, RolesGuard)
+  @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
+  @Get(':id/enrollments')
+  async getCourseEnrollments(@Param('id') courseId: string) {
+    return this.coursesService.getCourseEnrollments(courseId);
+  }
 }
+
 

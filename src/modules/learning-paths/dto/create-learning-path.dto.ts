@@ -16,4 +16,9 @@ export class CreateLearningPathDto {
   @IsOptional()
   @IsString({ message: 'O ID do eixo deve ser um texto válido.' })
   eixoId?: string;
+
+  @ApiPropertyOptional({ example: 'https://exemplo.com/capa.jpg', description: 'URL da imagem de capa da trilha' })
+  @IsOptional()
+  @IsString({ message: 'A URL da capa deve ser um texto.' })
+  capaUrl?: string;
 }
