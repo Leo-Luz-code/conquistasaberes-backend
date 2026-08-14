@@ -81,4 +81,37 @@ export class GamificationService {
       topSecretarias,
     };
   }
+
+  async processLessonCompletion(userId: string, gainedXp: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    const oldLevel = user.level;
+    const currentXp = user.xpPoints;
+    const newXp = currentXp + gainedXp;
+    
+    let newLevel = Math.floor(0.1 * Math.sqrt(newXp)) + 1;
+    if (newLevel < 1) newLevel = 1;
+
+    const leveledUp = newLevel > oldLevel;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        xpPoints: newXp,
+        level: newLevel,
+      },
+    });
+
+    return {
+      newXp,
+      newLevel,
+      leveledUp,
+    };
+  }
 }

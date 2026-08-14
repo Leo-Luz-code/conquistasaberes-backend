@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
 import { CertificateStatus } from '@prisma/client';
+import { GamificationService } from '../gamification/gamification.service';
 import {
   CreateCourseDto,
   UpdateCourseDto,
@@ -12,7 +13,10 @@ import {
 
 @Injectable()
 export class CoursesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gamificationService: GamificationService,
+  ) {}
 
   async findAll(search?: string, secretariaId?: string, categoria?: string) {
     const where: any = {
@@ -155,8 +159,7 @@ export class CoursesService {
     return newEnrollment;
   }
 
-  // Dor #1 & #2: Cursos do servidor autenticado com progresso e status
-  async findMyCourses(userId: string) {
+  async findMyCourses(userId: string, sync: boolean = false) {
     const enrollments = await this.prisma.enrollment.findMany({
       where: { userId, deletedAt: null },
       include: {
@@ -171,12 +174,34 @@ export class CoursesService {
       orderBy: { updatedAt: 'desc' },
     });
 
+    if (sync) {
+      for (const e of enrollments) {
+        if (e.completedAt || e.progress === 100) {
+          const allLessonsCount = await this.prisma.lesson.count({
+            where: { module: { courseId: e.courseId }, deletedAt: null }
+          });
+          const completedCount = await this.prisma.lessonProgress.count({
+            where: { userId, lesson: { module: { courseId: e.courseId }, deletedAt: null }, completed: true }
+          });
+          const newProg = allLessonsCount === 0 ? 0 : Math.min(100, Math.round((completedCount / allLessonsCount) * 100));
+          
+          if (newProg !== e.progress) {
+            e.progress = newProg;
+            await this.prisma.enrollment.update({
+              where: { id: e.id },
+              data: { progress: newProg },
+            });
+          }
+        }
+      }
+    }
+
     return enrollments
       .filter((e) => e.course.deletedAt === null)
       .map((e) => {
         let status: 'em_andamento' | 'concluido' | 'nao_iniciado' = 'nao_iniciado';
-        if (e.completedAt || e.progress >= 100) status = 'concluido';
-        else if (e.progress > 0) status = 'em_andamento';
+        if (e.completedAt && e.progress >= 100) status = 'concluido';
+        else if (e.progress > 0 || e.completedAt) status = 'em_andamento';
 
         return {
           id: e.course.id,
@@ -232,7 +257,7 @@ export class CoursesService {
         create: { userId, lessonId, completed: true },
       });
 
-      gainedXp = lesson.tipo === 'QUIZ' ? 100 : 50;
+      gainedXp = lesson.xp; // Usa o valor configurado na Aula
     }
 
     // Calcular progresso total do curso
@@ -253,56 +278,53 @@ export class CoursesService {
       Math.round((completedLessons.length / allLessons.length) * 100),
     );
 
-    const isNowCompleted = progressPercentage >= 100 && !enrollment.completedAt;
+    const isFirstTimeCompletion = progressPercentage >= 100 && !enrollment.completedAt;
+    const isRecompletion = progressPercentage >= 100 && enrollment.completedAt && enrollment.progress < 100;
 
     await this.prisma.enrollment.update({
       where: { id: enrollment.id },
       data: {
         progress: progressPercentage,
-        completedAt: isNowCompleted ? new Date() : enrollment.completedAt,
+        completedAt: isFirstTimeCompletion ? new Date() : enrollment.completedAt,
       },
     });
-
-    // Atualizar XP e Nível do Usuário
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    let newXp = (user?.xpPoints || 0) + gainedXp;
-    let newLevel = Math.floor(newXp / 250) + 1;
 
     // Conclusão de Curso: Bônus de XP, Badges e Certificado Automatizado
     let newBadgeEarned: any = null;
     let newCertificateCode: string | null = null;
+    let totalGainedXp = gainedXp;
 
-    if (isNowCompleted) {
-      newXp += 200; // Bônus por concluir curso
-      newLevel = Math.floor(newXp / 250) + 1;
+    if (progressPercentage >= 100) {
+      if (isFirstTimeCompletion) {
+        totalGainedXp += 200; // Bônus por concluir curso pela primeira vez
 
-      // Verificar / Conceder Badges
-      const badges = await this.prisma.badge.findMany({ where: { deletedAt: null } });
-      const courseTitleLower = lesson.module.course.titulo.toLowerCase();
+        // Verificar / Conceder Badges
+        const badges = await this.prisma.badge.findMany({ where: { deletedAt: null } });
+        const courseTitleLower = lesson.module.course.titulo.toLowerCase();
 
-      let targetBadge = null;
-      if (courseTitleLower.includes('inovação')) {
-        targetBadge = badges.find((b) => b.nome.includes('Inovador'));
-      } else if (courseTitleLower.includes('lgpd')) {
-        targetBadge = badges.find((b) => b.nome.includes('LGPD'));
-      }
+        let targetBadge = null;
+        if (courseTitleLower.includes('inovação')) {
+          targetBadge = badges.find((b) => b.nome.includes('Inovador'));
+        } else if (courseTitleLower.includes('lgpd')) {
+          targetBadge = badges.find((b) => b.nome.includes('LGPD'));
+        }
 
-      if (!targetBadge) {
-        targetBadge = badges.find((b) => b.nome.includes('Pioneiro'));
-      }
+        if (!targetBadge) {
+          targetBadge = badges.find((b) => b.nome.includes('Pioneiro'));
+        }
 
-      if (targetBadge) {
-        const hasBadge = await this.prisma.userBadge.findUnique({
-          where: { userId_badgeId: { userId, badgeId: targetBadge.id } },
-        });
-
-        if (!hasBadge) {
-          await this.prisma.userBadge.create({
-            data: { userId, badgeId: targetBadge.id },
+        if (targetBadge) {
+          const hasBadge = await this.prisma.userBadge.findUnique({
+            where: { userId_badgeId: { userId, badgeId: targetBadge.id } },
           });
-          newBadgeEarned = targetBadge;
-          newXp += targetBadge.xpBonus;
-          newLevel = Math.floor(newXp / 250) + 1;
+
+          if (!hasBadge) {
+            await this.prisma.userBadge.create({
+              data: { userId, badgeId: targetBadge.id },
+            });
+            newBadgeEarned = targetBadge;
+            totalGainedXp += targetBadge.xpBonus;
+          }
         }
       }
 
@@ -334,19 +356,27 @@ export class CoursesService {
         });
       } else {
         newCertificateCode = existingCert.codigoValidacao;
+        if (isRecompletion) {
+          await this.prisma.certificate.update({
+            where: { id: existingCert.id },
+            data: { issuedAt: new Date() },
+          });
+        }
       }
     }
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { xpPoints: newXp, level: newLevel },
-    });
+    // Delega ao GamificationService a responsabilidade de atualizar nível e XP
+    const gamificationResult = await this.gamificationService.processLessonCompletion(
+      userId,
+      totalGainedXp,
+    );
 
     return {
       message: 'Aula concluída com sucesso!',
-      gainedXp,
-      newTotalXp: newXp,
-      level: newLevel,
+      gainedXp: totalGainedXp, // XP total ganho nesta ação
+      newTotalXp: gamificationResult.newXp,
+      level: gamificationResult.newLevel,
+      leveledUp: gamificationResult.leveledUp,
       courseProgress: progressPercentage,
       isCourseCompleted: progressPercentage >= 100,
       newBadgeEarned,
@@ -465,7 +495,7 @@ export class CoursesService {
 
     const count = await this.prisma.lesson.count({ where: { moduleId, deletedAt: null } });
 
-    return this.prisma.lesson.create({
+    const newLesson = await this.prisma.lesson.create({
       data: {
         titulo: dto.titulo,
         tipo: dto.tipo,
@@ -473,10 +503,13 @@ export class CoursesService {
         texto: dto.texto,
         quizData: dto.quizData,
         duracaoMin: dto.duracaoMin ?? 10,
+        xp: dto.xp ?? 10,
         ordem: dto.ordem ?? count + 1,
         moduleId,
       },
     });
+
+    return newLesson;
   }
 
   async updateLesson(lessonId: string, dto: UpdateLessonDto) {
@@ -490,13 +523,46 @@ export class CoursesService {
   }
 
   async deleteLesson(lessonId: string) {
-    const lesson = await this.prisma.lesson.findFirst({ where: { id: lessonId, deletedAt: null } });
+    const lesson = await this.prisma.lesson.findFirst({ where: { id: lessonId, deletedAt: null }, include: { module: true } });
     if (!lesson) throw new NotFoundException('Aula não encontrada.');
 
-    return this.prisma.lesson.update({
+    const updated = await this.prisma.lesson.update({
       where: { id: lessonId },
       data: { deletedAt: new Date() },
     });
+
+    return updated;
+  }
+
+  // =========================================================================
+  // HELPER INTERNO
+  // =========================================================================
+  private async syncCourseProgress(courseId: string) {
+    const allLessonsCount = await this.prisma.lesson.count({
+      where: { module: { courseId }, deletedAt: null },
+    });
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId },
+    });
+
+    for (const en of enrollments) {
+      const completedCount = await this.prisma.lessonProgress.count({
+        where: {
+          userId: en.userId,
+          lesson: { module: { courseId }, deletedAt: null },
+          completed: true,
+        },
+      });
+      const newProg = allLessonsCount === 0 ? 0 : Math.min(100, Math.round((completedCount / allLessonsCount) * 100));
+      
+      if (newProg !== en.progress) {
+        await this.prisma.enrollment.update({
+          where: { id: en.id },
+          data: { progress: newProg },
+        });
+      }
+    }
   }
 }
 

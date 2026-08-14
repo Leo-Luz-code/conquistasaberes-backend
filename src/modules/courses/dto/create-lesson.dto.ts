@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsIn } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsIn, Max } from 'class-validator';
 
 export class CreateLessonDto {
   @ApiProperty({ example: 'Aula 1: O que é a LGPD?', description: 'Título da aula' })
@@ -36,4 +36,10 @@ export class CreateLessonDto {
   @IsNumber()
   @IsOptional()
   ordem?: number;
+
+  @ApiPropertyOptional({ example: 10, description: 'XP concedido ao concluir a aula (Máx 100)' })
+  @IsNumber()
+  @Max(100)
+  @IsOptional()
+  xp?: number;
 }

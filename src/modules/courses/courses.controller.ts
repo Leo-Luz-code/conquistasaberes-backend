@@ -87,11 +87,12 @@ export class CoursesController {
 
   // Dor #1 & #2: Cursos do servidor com progresso real (deve vir antes de :id)
   @ApiOperation({ summary: 'Listar cursos nos quais o servidor está matriculado (com progresso e status)' })
+  @ApiQuery({ name: 'sync', required: false, type: Boolean })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
   @Get('my-courses')
-  async findMyCourses(@Request() req: any) {
-    return this.coursesService.findMyCourses(req.user.sub);
+  async findMyCourses(@Request() req: any, @Query('sync') sync?: string) {
+    return this.coursesService.findMyCourses(req.user.sub, sync === 'true');
   }
 
   @ApiOperation({ summary: 'Detalhes completos do curso e plano de aulas com status do servidor' })

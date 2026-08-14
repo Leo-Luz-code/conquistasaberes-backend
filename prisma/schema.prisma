@@ -23,19 +23,19 @@ model Secretaria {
   nome  String @map("nome_secretaria")
   sigla String @unique
 
-  descricao          String?
-  responsavelNome    String?  @map("responsavel_nome")
-  responsavelEmail   String?  @map("responsavel_email")
-  telefone           String?
-  endereco           String?
-  corIdentificacao   String?  @map("cor_identificacao")
-  ativa              Boolean  @default(true)
+  descricao        String?
+  responsavelNome  String? @map("responsavel_nome")
+  responsavelEmail String? @map("responsavel_email")
+  telefone         String?
+  endereco         String?
+  corIdentificacao String? @map("cor_identificacao")
+  ativa            Boolean @default(true)
 
   users      User[]
   servidores Servidor[]
   courses    Course[]
   noticias   Noticia[]
-  events Event[]
+  events     Event[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -96,8 +96,8 @@ model User {
   forumPosts           ForumPost[]
   comments             ForumComment[]
   auditLogs            AuditLog[]
-  eventEnrollments EventEnrollment[]
-  
+  eventEnrollments     EventEnrollment[]
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -193,6 +193,7 @@ model Lesson {
   texto            String?
   quizData         String?
   duracaoMin       Int       @default(10)
+  xp               Int       @default(10)
   ordem            Int
   dataHoraAgendada DateTime? @map("data_hora_agendada")
 
@@ -433,23 +434,23 @@ model Biblioteca {
 
 // 20. NOTÍCIAS & COMUNICADOS INSTITUCIONAIS
 model Noticia {
-  id           String   @id @default(uuid())
-  titulo       String
-  subtitulo    String?
-  conteudo     String
-  categoria    String   @default("Geral")
-  capaUrl      String?  @map("capa_url")
-  destaque     Boolean  @default(false)
-  publicada    Boolean  @default(true)
+  id            String  @id @default(uuid())
+  titulo        String
+  subtitulo     String?
+  conteudo      String
+  categoria     String  @default("Geral")
+  capaUrl       String? @map("capa_url")
+  destaque      Boolean @default(false)
+  publicada     Boolean @default(true)
   visualizacoes Int     @default(0)
-  autorNome    String?  @map("autor_nome")
+  autorNome     String? @map("autor_nome")
 
   secretariaAlvoId String?     @map("fk_secretaria_alvo")
   secretariaAlvo   Secretaria? @relation(fields: [secretariaAlvoId], references: [id])
 
-  dataPublicacao DateTime @default(now()) @map("data_publicacao")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  dataPublicacao DateTime  @default(now()) @map("data_publicacao")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
 
   @@map("noticias")
@@ -457,38 +458,38 @@ model Noticia {
 
 // 21. Eventos
 model Event {
-  id           String   @id @default(uuid())
-  titulo       String   @map("titulo_evento")
-  descricao    String?  @db.Text
-  categoria    String   @default("Palestra") // Ex: Palestra, Workshop, Reunião
-  dataInicio   DateTime @map("data_inicio")   // Data e hora de início (ex: 15 de maio às 14h)
-  dataFim      DateTime @map("data_fim")      // Data e hora de término (ex: 15 de maio às 17h)
-  local        String?  // Ex: Auditório Prefeitura
-  modalidade   String   @default("PRESENCIAL") // PRESENCIAL, ONLINE, HIBRIDO
-  vagas        Int?     // Limite de vagas opcional
-  capaUrl      String?  @map("capa_url")
+  id         String   @id @default(uuid())
+  titulo     String   @map("titulo_evento")
+  descricao  String?  @db.Text
+  categoria  String   @default("Palestra") // Ex: Palestra, Workshop, Reunião
+  dataInicio DateTime @map("data_inicio") // Data e hora de início (ex: 15 de maio às 14h)
+  dataFim    DateTime @map("data_fim") // Data e hora de término (ex: 15 de maio às 17h)
+  local      String? // Ex: Auditório Prefeitura
+  modalidade String   @default("PRESENCIAL") // PRESENCIAL, ONLINE, HIBRIDO
+  vagas      Int? // Limite de vagas opcional
+  capaUrl    String?  @map("capa_url")
 
   secretariaId String?     @map("fk_secretaria")
   secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
 
-  inscricoes   EventEnrollment[]
+  inscricoes EventEnrollment[]
 
-  isPublished  Boolean   @default(true) @map("is_published")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  isPublished Boolean   @default(true) @map("is_published")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("events")
 }
 
 // 22. INSCRIÇÃO EM EVENTOS
 model EventEnrollment {
-  id               String   @id @default(uuid())
-  userId           String   @map("fk_usuario")
-  eventId          String   @map("fk_evento")
-  user             User     @relation(fields: [userId], references: [id])
-  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  presencaValidada Boolean  @default(false) @map("presenca_validada")
+  id               String  @id @default(uuid())
+  userId           String  @map("fk_usuario")
+  eventId          String  @map("fk_evento")
+  user             User    @relation(fields: [userId], references: [id])
+  event            Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  presencaValidada Boolean @default(false) @map("presenca_validada")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
