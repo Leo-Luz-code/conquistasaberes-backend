@@ -17,6 +17,8 @@ import { NoticiasModule } from './modules/noticias/noticias.module';
 import { EixosModule } from './modules/eixos/eixos.module';
 import { LibraryModule } from './modules/library/library.module';
 import { EventsModule } from './modules/events/events.module';
+import { TalentosModule } from './modules/talents/talentos.module';
+import { SkillsModule } from './modules/skills/skills.module';
 
 @Module({
   imports: [
@@ -36,7 +38,9 @@ import { EventsModule } from './modules/events/events.module';
     NoticiasModule,
     EixosModule,
     LibraryModule,
-    EventsModule
+    EventsModule,
+    TalentosModule,
+    SkillsModule
   ],
 })
 export class AppModule {}

@@ -100,6 +100,7 @@ model User {
   learningPathEnrollments LearningPathEnrollment[]
   coursesCreated       Course[]                  @relation("CoursesCreated")
   learningPathsCreated LearningPath[]            @relation("LearningPathsCreated")
+  userSkills UserSkill[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -170,7 +171,8 @@ model Course {
   enrollments  Enrollment[]
   certificates Certificate[]
   forumPosts   ForumPost[]
-
+  courseSkills CourseSkill[]
+  
   isPublished Boolean   @default(true)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -528,4 +530,50 @@ model LearningPathEnrollment {
 
   @@unique([userId, learningPathId])
   @@map("learning_path_enrollments")
+}
+
+// 24. Skill
+model Skill {
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  categoria String? // agrupamento macro, ex: "Tecnologia", "Gestão", "Atendimento"
+
+  courseSkills CourseSkill[]
+  userSkills   UserSkill[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("skills")
+}
+
+// 25. RELAÇÃO CURSO <-> SKILL (um curso pode desenvolver várias habilidades)
+model CourseSkill {
+  courseId String
+  skillId  String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skill    Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([courseId, skillId])
+  @@map("course_skills")
+}
+
+// 26. SCORE DE HABILIDADE POR SERVIDOR (materializado, atualizado ao concluir curso)
+model UserSkill {
+  id               String @id @default(uuid())
+  userId           String
+  skillId          String
+  user             User   @relation(fields: [userId], references: [id])
+  skill            Skill  @relation(fields: [skillId], references: [id])
+  nivel            Int    @default(0) // 0-100, calculado
+  cursosConcluidos Int    @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, skillId])
+  @@map("user_skills")
 }
