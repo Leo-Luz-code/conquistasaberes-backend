@@ -98,6 +98,8 @@ model User {
   auditLogs            AuditLog[]
   eventEnrollments     EventEnrollment[]
   learningPathEnrollments LearningPathEnrollment[]
+  coursesCreated       Course[]                  @relation("CoursesCreated")
+  learningPathsCreated LearningPath[]            @relation("LearningPathsCreated")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -130,6 +132,9 @@ model LearningPath {
   eixoId String?           @map("fk_eixo")
   eixo   EixoConhecimento? @relation(fields: [eixoId], references: [id])
 
+  criadorId String? @map("fk_criador")
+  criador   User?   @relation("LearningPathsCreated", fields: [criadorId], references: [id])
+
   courses Course[]
   enrollments LearningPathEnrollment[]
 
@@ -153,6 +158,9 @@ model Course {
 
   secretariaId String?
   secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
+
+  criadorId String? @map("fk_criador")
+  criador   User?   @relation("CoursesCreated", fields: [criadorId], references: [id])
 
   trilhaId String?       @map("fk_trilha")
   trilha   LearningPath? @relation(fields: [trilhaId], references: [id])

@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
-import { CertificateStatus } from '@prisma/client';
+import { CertificateStatus, Role } from '@prisma/client';
 import { GamificationService } from '../gamification/gamification.service';
 import {
   CreateCourseDto,
@@ -395,9 +395,23 @@ export class CoursesService {
     });
   }
 
-  async findAllAdmin() {
+  async findAllAdmin(userId?: string, userRole?: Role) {
+    const whereClause: any = { deletedAt: null };
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { secretariaId: true },
+      });
+
+      whereClause.OR = [
+        { criadorId: userId },
+        ...(user?.secretariaId ? [{ criadorId: null, secretariaId: user.secretariaId }] : []),
+      ];
+    }
+
     return this.prisma.course.findMany({
-      where: { deletedAt: null },
+      where: whereClause,
       include: {
         secretaria: true,
         trilha: { select: { id: true, tituloTrilha: true } },
@@ -412,14 +426,14 @@ export class CoursesService {
           },
         },
         _count: {
-          select: { enrollments: true },
+           select: { enrollments: true },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async createCourse(dto: CreateCourseDto) {
+  async createCourse(dto: CreateCourseDto, criadorId?: string) {
     return this.prisma.course.create({
       data: {
         titulo: dto.titulo,
@@ -430,13 +444,20 @@ export class CoursesService {
         secretariaId: dto.secretariaId || null,
         trilhaId: dto.trilhaId || null,
         isPublished: dto.isPublished ?? true,
+        criadorId: criadorId || null,
       },
     });
   }
 
-  async updateCourse(id: string, dto: UpdateCourseDto) {
+  async updateCourse(id: string, dto: UpdateCourseDto, userId?: string, userRole?: Role) {
     const course = await this.prisma.course.findFirst({ where: { id, deletedAt: null } });
     if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (course.criadorId && course.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para gerenciar os cursos criados por você.');
+      }
+    }
 
     return this.prisma.course.update({
       where: { id },
@@ -444,9 +465,15 @@ export class CoursesService {
     });
   }
 
-  async deleteCourse(id: string) {
+  async deleteCourse(id: string, userId?: string, userRole?: Role) {
     const course = await this.prisma.course.findFirst({ where: { id, deletedAt: null } });
     if (!course) throw new NotFoundException('Curso não encontrado.');
+
+    if (userRole === Role.GESTOR_SECRETARIA && userId) {
+      if (course.criadorId && course.criadorId !== userId) {
+        throw new ForbiddenException('Você só tem permissão para excluir os cursos criados por você.');
+      }
+    }
 
     return this.prisma.course.update({
       where: { id },

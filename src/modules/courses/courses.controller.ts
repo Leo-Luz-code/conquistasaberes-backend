@@ -76,8 +76,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Get('admin/all')
-  async findAllAdmin() {
-    return this.coursesService.findAllAdmin();
+  async findAllAdmin(@Request() req: any) {
+    return this.coursesService.findAllAdmin(req.user?.sub, req.user?.role);
   }
 
   @ApiOperation({ summary: 'Listar secretarias municipais' })
@@ -129,8 +129,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Post()
-  async createCourse(@Body() dto: CreateCourseDto) {
-    return this.coursesService.createCourse(dto);
+  async createCourse(@Body() dto: CreateCourseDto, @Request() req: any) {
+    return this.coursesService.createCourse(dto, req.user?.sub);
   }
 
   @ApiOperation({ summary: 'Atualizar curso existente' })
@@ -138,8 +138,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Put(':id')
-  async updateCourse(@Param('id') id: string, @Body() dto: UpdateCourseDto) {
-    return this.coursesService.updateCourse(id, dto);
+  async updateCourse(@Param('id') id: string, @Body() dto: UpdateCourseDto, @Request() req: any) {
+    return this.coursesService.updateCourse(id, dto, req.user?.sub, req.user?.role);
   }
 
   @ApiOperation({ summary: 'Remover curso (Soft Delete)' })
@@ -147,8 +147,8 @@ export class CoursesController {
   @UseGuards(JwtAtGuard, RolesGuard)
   @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
   @Delete(':id')
-  async deleteCourse(@Param('id') id: string) {
-    return this.coursesService.deleteCourse(id);
+  async deleteCourse(@Param('id') id: string, @Request() req: any) {
+    return this.coursesService.deleteCourse(id, req.user?.sub, req.user?.role);
   }
 
   @ApiOperation({ summary: 'Criar módulo no curso' })
