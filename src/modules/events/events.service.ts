@@ -173,9 +173,113 @@ export class EventsService {
 
     return this.prisma.eventEnrollment.findMany({
       where: { eventId, deletedAt: null },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nome: true,
+            matricula: true,
+            email: true,
+            cargo: true,
+            secretaria: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  // =========================================================
+  // CHECK-IN DE PRESENÇA (PÚBLICO VIA QR CODE / MATRÍCULA)
+  // =========================================================
+  async checkin(eventId: string, matricula: string) {
+    const cleanIdentifier = matricula.trim();
+
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, deletedAt: null },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Evento não encontrado.');
+    }
+
+    // Localizar usuário por matrícula ou CPF
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { matricula: cleanIdentifier },
+          { cpf: cleanIdentifier },
+        ],
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Nenhum servidor foi localizado com a matrícula/identificador "${cleanIdentifier}".`,
+      );
+    }
+
+    // Verificar se o servidor está inscrito no evento
+    const enrollment = await this.prisma.eventEnrollment.findFirst({
+      where: {
+        eventId,
+        userId: user.id,
+        deletedAt: null,
+      },
+    });
+
+    if (!enrollment) {
+      throw new BadRequestException(
+        `O servidor ${user.nome} (Matrícula: ${user.matricula}) não está inscrito no evento "${event.titulo}". É necessário realizar a inscrição antes de confirmar a presença.`,
+      );
+    }
+
+    // Se já tiver confirmado presença anteriormente
+    if (enrollment.presencaValidada) {
+      const dataFormatada = enrollment.presencaValidadaEm
+        ? new Date(enrollment.presencaValidadaEm).toLocaleString('pt-BR')
+        : 'data anterior';
+
+      return {
+        success: true,
+        alreadyConfirmed: true,
+        message: `Presença já havia sido confirmada anteriormente (${dataFormatada}).`,
+        eventTitle: event.titulo,
+        servidorNome: user.nome,
+        matricula: user.matricula,
+        timestamp: enrollment.presencaValidadaEm || enrollment.updatedAt,
+      };
+    }
+
+    // Atualizar presença
+    const now = new Date();
+    const updated = await this.prisma.eventEnrollment.update({
+      where: { id: enrollment.id },
+      data: {
+        presencaValidada: true,
+        presencaValidadaEm: now,
+      },
+    });
+
+    // Log de auditoria
+    await this.prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        acao: 'PRESENCA_EVENTO_CONFIRMADA',
+        detalhes: `Presença confirmada no evento: ${event.titulo}`,
+      },
+    });
+
+    return {
+      success: true,
+      alreadyConfirmed: false,
+      message: 'Presença confirmada com sucesso!',
+      eventTitle: event.titulo,
+      servidorNome: user.nome,
+      matricula: user.matricula,
+      timestamp: now,
+    };
   }
 
   async findMyEnrollments(userId: string) {

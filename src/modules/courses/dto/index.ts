@@ -4,3 +4,4 @@ export * from './create-module.dto';
 export * from './update-module.dto';
 export * from './create-lesson.dto';
 export * from './update-lesson.dto';
+export * from './checkin-lesson.dto';

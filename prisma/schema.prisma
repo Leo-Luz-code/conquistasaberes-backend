@@ -486,12 +486,13 @@ model Event {
 
 // 22. INSCRIÇÃO EM EVENTOS
 model EventEnrollment {
-  id               String  @id @default(uuid())
-  userId           String  @map("fk_usuario")
-  eventId          String  @map("fk_evento")
-  user             User    @relation(fields: [userId], references: [id])
-  event            Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  presencaValidada Boolean @default(false) @map("presenca_validada")
+  id                 String    @id @default(uuid())
+  userId             String    @map("fk_usuario")
+  eventId            String    @map("fk_evento")
+  user               User      @relation(fields: [userId], references: [id])
+  event              Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  presencaValidada   Boolean   @default(false) @map("presenca_validada")
+  presencaValidadaEm DateTime? @map("presenca_validada_em")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")

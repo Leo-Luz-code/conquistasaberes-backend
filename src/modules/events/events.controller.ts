@@ -24,6 +24,7 @@ import { JwtAtGuard } from '../../common/guards';
 
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { CheckinDto } from './dto/checkin.dto';
 
 @ApiTags('Eventos & Palestras')
 @Controller('events')
@@ -31,6 +32,20 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
   ) {}
+
+  // =========================================================
+  // CHECK-IN DE PRESENÇA (PÚBLICO VIA QR CODE)
+  // =========================================================
+  @ApiOperation({
+    summary: 'Confirmar presença de servidor em evento via QR Code',
+  })
+  @Post(':id/checkin')
+  async checkin(
+    @Param('id') eventId: string,
+    @Body() dto: CheckinDto,
+  ) {
+    return this.eventsService.checkin(eventId, dto.matricula);
+  }
 
   // =========================================================
   // EVENTOS PÚBLICOS / CATÁLOGO
