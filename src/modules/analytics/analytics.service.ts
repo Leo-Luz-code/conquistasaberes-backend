@@ -98,4 +98,26 @@ export class AnalyticsService {
       categoriesCount,
     };
   }
+
+  async getAdminSummary() {
+    const [totalServidores, totalCursos, totalGestores, totalSecretarias] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null, role: 'SERVIDOR' } }),
+      this.prisma.course.count({ where: { deletedAt: null, isPublished: true } }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          role: { in: ['GESTOR_SECRETARIA', 'ADMIN_RH_CETI'] },
+          statusAtivo: true,
+        },
+      }),
+      this.prisma.secretaria.count({ where: { deletedAt: null, ativa: true } }),
+    ]);
+
+    return {
+      totalServidores,
+      totalCursos,
+      totalGestores,
+      totalSecretarias,
+    };
+  }
 }

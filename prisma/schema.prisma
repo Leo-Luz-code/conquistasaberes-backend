@@ -97,6 +97,7 @@ model User {
   comments             ForumComment[]
   auditLogs            AuditLog[]
   eventEnrollments     EventEnrollment[]
+  learningPathEnrollments LearningPathEnrollment[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -130,6 +131,7 @@ model LearningPath {
   eixo   EixoConhecimento? @relation(fields: [eixoId], references: [id])
 
   courses Course[]
+  enrollments LearningPathEnrollment[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -497,4 +499,23 @@ model EventEnrollment {
 
   @@unique([userId, eventId])
   @@map("event_enrollments")
+}
+
+// 23. MATRÍCULA EM TRILHA DE APRENDIZAGEM
+model LearningPathEnrollment {
+  id             String       @id @default(uuid())
+  userId         String       @map("fk_usuario")
+  learningPathId String       @map("fk_trilha")
+  user           User         @relation(fields: [userId], references: [id])
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  status         String       @default("EM_ANDAMENTO") // EM_ANDAMENTO, CONCLUIDO
+  progress       Float        @default(0.0)
+  completedAt    DateTime?
+
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+
+  @@unique([userId, learningPathId])
+  @@map("learning_path_enrollments")
 }

@@ -1,27 +1,46 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Request, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LearningPathsService } from './learning-paths.service';
 import { JwtAtGuard, RolesGuard } from '../../common/guards';
 import { Roles } from '../../common/decorators';
 import { Role } from '@prisma/client';
 import { CreateLearningPathDto, UpdateLearningPathDto, LinkCoursesDto } from './dto';
-import { Patch } from '@nestjs/common';
 
 @ApiTags('Trilhas de Aprendizagem')
 @Controller('learning-paths')
 export class LearningPathsController {
   constructor(private readonly learningPathsService: LearningPathsService) {}
 
-  @ApiOperation({ summary: 'Obter todas as trilhas de capacitação (Público/Autenticado)' })
+  @ApiOperation({ summary: 'Obter todas as trilhas de capacitação' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
   @Get()
-  async getLearningPaths() {
-    return this.learningPathsService.getLearningPaths();
+  async getLearningPaths(@Request() req: any) {
+    return this.learningPathsService.getLearningPaths(req.user?.sub);
+  }
+
+  @ApiOperation({ summary: 'Listar trilhas nas quais o servidor está inscrito' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
+  @Get('my-paths')
+  async findMyLearningPaths(@Request() req: any) {
+    return this.learningPathsService.findMyLearningPaths(req.user.sub);
   }
 
   @ApiOperation({ summary: 'Obter detalhes de uma trilha de aprendizagem' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.learningPathsService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req: any) {
+    return this.learningPathsService.findOne(id, req.user?.sub);
+  }
+
+  @ApiOperation({ summary: 'Inscrever servidor em uma trilha de aprendizagem' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard)
+  @Post(':id/enroll')
+  async enroll(@Param('id') id: string, @Request() req: any) {
+    return this.learningPathsService.enroll(id, req.user.sub);
   }
 
   @ApiOperation({ summary: 'Criar uma nova trilha de aprendizagem' })
