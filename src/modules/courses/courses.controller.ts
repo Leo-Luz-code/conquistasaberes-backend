@@ -46,12 +46,17 @@ export class CoursesController {
       }),
     }),
   )
-  uploadFile(@UploadedFile() file: any) {
+  uploadFile(@UploadedFile() file: any, @Request() req: any) {
     if (!file) {
       return { url: null };
     }
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3001';
+    const fullUrl = `${protocol}://${host}/uploads/${file.filename}`;
     return {
-      url: `/uploads/${file.filename}`,
+      url: fullUrl,
+      relativePath: `/uploads/${file.filename}`,
+      filename: file.filename,
       originalname: file.originalname,
       size: file.size,
     };

@@ -249,6 +249,7 @@ export class LearningPathsService {
       data: {
         tituloTrilha: dto.tituloTrilha,
         cargaHorariaTotal: dto.cargaHorariaTotal,
+        capaUrl: dto.capaUrl || null,
         ...(dto.eixoId && { eixoId: dto.eixoId }),
         criadorId: criadorId || null,
       },
@@ -276,6 +277,7 @@ export class LearningPathsService {
         ...(dto.tituloTrilha && { tituloTrilha: dto.tituloTrilha }),
         ...(dto.cargaHorariaTotal !== undefined && { cargaHorariaTotal: dto.cargaHorariaTotal }),
         ...(dto.eixoId !== undefined && { eixoId: dto.eixoId }),
+        ...(dto.capaUrl !== undefined && { capaUrl: dto.capaUrl }),
       },
     });
   }

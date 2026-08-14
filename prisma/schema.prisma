@@ -125,9 +125,10 @@ model EixoConhecimento {
 
 // 5. TRILHA DE APRENDIZAGEM
 model LearningPath {
-  id                String @id @default(uuid())
-  tituloTrilha      String @map("titulo_trilha")
-  cargaHorariaTotal Int    @map("carga_horaria_total")
+  id                String  @id @default(uuid())
+  tituloTrilha      String  @map("titulo_trilha")
+  cargaHorariaTotal Int     @map("carga_horaria_total")
+  capaUrl           String? @map("capa_url")
 
   eixoId String?           @map("fk_eixo")
   eixo   EixoConhecimento? @relation(fields: [eixoId], references: [id])
