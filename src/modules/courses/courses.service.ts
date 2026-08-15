@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { PrismaService } from '../../plugins/database/services/prisma.service';
 import { CertificateStatus, Role } from '@prisma/client';
 import { GamificationService } from '../gamification/gamification.service';
 import {

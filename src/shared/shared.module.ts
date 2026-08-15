@@ -1,4 +1,4 @@
-import { DatabaseModule } from 'src/plugins/database/database.module';
+import { DatabaseModule } from '../plugins/database/database.module';
 import { PaginateService } from './services/paginate.service';
 import { LoggingService } from './services/logging.service';
 import { Global, Logger, Module } from '@nestjs/common';

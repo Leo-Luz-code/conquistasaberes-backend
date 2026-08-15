@@ -10,7 +10,7 @@ import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
-import { LocalAuthGuard } from 'src/common/guards';
+import { LocalAuthGuard } from '../../common/guards';
 
 @Module({
   imports: [

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { PrismaService } from '../../plugins/database/services/prisma.service';
 import { CreateBibliotecaDto, ListLibraryDto, UpdateBibliotecaDto } from './dto/library.dto';
 
 @Injectable()

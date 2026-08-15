@@ -27,10 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Tag                      | Release date |
 |--------------------------|--------------|
+| [1.0.4](#104-2026-08-15) | 2026-08-15   |
 | [1.0.3](#103-2026-08-15) | 2026-08-15   |
 | [1.0.2](#102-2026-08-15) | 2026-08-15   |
 | [1.0.1](#101-2026-08-14) | 2026-08-14   |
 | [1.0.0](#100-2026-08-14) | 2026-08-14   |
+
+
+## [1.0.4] - 2026-08-15
+
+### Fixed
+- **Resolução de Módulos e Compilação (`tsconfig.build.json` e imports):**
+  - Ajuste de `rootDir` e normalização dos caminhos relativos de importação do `PrismaService` e serviços compartilhados, corrigindo erro de `MODULE_NOT_FOUND` no modo watch/desenvolvimento.
 
 
 ## [1.0.3] - 2026-08-15

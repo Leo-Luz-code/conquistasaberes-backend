@@ -13,9 +13,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { SecretariasService } from './secretarias.service';
 import { CreateSecretariaDto } from './dto/create-secretaria.dto';
 import { UpdateSecretariaDto } from './dto/update-secretaria.dto';
-import { JwtAtGuard } from 'src/common/guards/jwt-at.guard';
-import { RolesGuard } from 'src/common/guards/roles.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAtGuard } from '../../common/guards/jwt-at.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 @ApiTags('Secretarias Municipais')
