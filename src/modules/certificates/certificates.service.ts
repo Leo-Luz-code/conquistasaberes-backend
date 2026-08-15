@@ -38,8 +38,16 @@ export class CertificatesService {
   }
 
   async validateCertificate(codigoValidacao: string) {
-    const cert = await this.prisma.certificate.findUnique({
-      where: { codigoValidacao },
+    const cleanCode = (codigoValidacao || '').trim();
+    const cert = await this.prisma.certificate.findFirst({
+      where: {
+        deletedAt: null,
+        OR: [
+          { codigoValidacao: cleanCode },
+          { codigoValidacao: { equals: cleanCode, mode: 'insensitive' } },
+          { id: cleanCode },
+        ],
+      },
       include: {
         course: { include: { secretaria: true } },
         user: { include: { secretaria: true } },
@@ -49,27 +57,53 @@ export class CertificatesService {
     if (!cert || cert.deletedAt || cert.status !== CertificateStatus.EMITTED) {
       return {
         isValid: false,
+        valid: false,
         message: 'Certificado não encontrado ou revogado.',
       };
     }
 
     return {
       isValid: true,
+      valid: true,
       codigoValidacao: cert.codigoValidacao,
-      servidor: cert.user.nome,
-      cpfMascarado: cert.user.cpf.replace(/(\d{3})\d{5}(\d{2})/, '$1.***.***-$2'),
-      cargo: cert.user.cargo,
-      secretaria: cert.user.secretaria.nome,
-      curso: cert.course.titulo,
-      cargaHoraria: cert.course.cargaHoraria,
+      servidor: cert.user?.nome || 'Servidor Municipal',
+      cpfMascarado: cert.user?.cpf
+        ? cert.user.cpf.replace(/(\d{3})\d{5}(\d{2})/, '$1.***.***-$2')
+        : '***.***.***-**',
+      cargo: cert.user?.cargo || 'Servidor Municipal',
+      secretaria: cert.user?.secretaria?.nome || 'Prefeitura Municipal de Vitória da Conquista',
+      curso: cert.course?.titulo || 'Curso de Capacitação',
+      cargaHoraria: cert.course?.cargaHoraria || 20,
       issuedAt: cert.issuedAt,
       emissor: 'Prefeitura Municipal de Vitória da Conquista - CETI / SETP',
+      certificate: {
+        id: cert.id,
+        codigoValidacao: cert.codigoValidacao,
+        issuedAt: cert.issuedAt,
+        user: {
+          nome: cert.user?.nome,
+          cpf: cert.user?.cpf,
+          cargo: cert.user?.cargo,
+        },
+        course: {
+          titulo: cert.course?.titulo,
+          cargaHoraria: cert.course?.cargaHoraria,
+        },
+      },
     };
   }
 
   async generatePdfBuffer(codigoValidacao: string): Promise<Buffer> {
-    const cert = await this.prisma.certificate.findUnique({
-      where: { codigoValidacao },
+    const cleanCode = (codigoValidacao || '').trim();
+    const cert = await this.prisma.certificate.findFirst({
+      where: {
+        deletedAt: null,
+        OR: [
+          { codigoValidacao: cleanCode },
+          { codigoValidacao: { equals: cleanCode, mode: 'insensitive' } },
+          { id: cleanCode },
+        ],
+      },
       include: {
         course: true,
         user: { include: { secretaria: true } },
