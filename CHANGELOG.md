@@ -27,11 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Tag                      | Release date |
 |--------------------------|--------------|
+| [1.0.5](#105-2026-08-15) | 2026-08-15   |
 | [1.0.4](#104-2026-08-15) | 2026-08-15   |
 | [1.0.3](#103-2026-08-15) | 2026-08-15   |
 | [1.0.2](#102-2026-08-15) | 2026-08-15   |
 | [1.0.1](#101-2026-08-14) | 2026-08-14   |
 | [1.0.0](#100-2026-08-14) | 2026-08-14   |
+
+
+## [1.0.5] - 2026-08-15
+
+### Fixed
+- **Tratamento de Foreign Key em Logs de Auditoria (`logging.service.ts`):**
+  - Validação prévia da existência do `userId` no banco antes da inserção em `auditLog` e tratamento gracioso de `P2003`, prevenindo erros de violação de chave estrangeira causados por sessões antigas ou tokens residuais pós-seed.
 
 
 ## [1.0.4] - 2026-08-15
