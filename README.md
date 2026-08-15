@@ -1,85 +1,111 @@
-# prometheus-back-end
+<div align="center">
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# 🏛️ AVA UniVC — Back-end API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+### _Ambiente Virtual de Aprendizagem da Prefeitura Municipal de Vitória da Conquista_
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+[![NestJS](https://img.shields.io/badge/NestJS-10.x-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Prisma ORM](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Swagger](https://img.shields.io/badge/Swagger-OpenAPI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](http://localhost:3001/api/docs)
+[![LGPD](https://img.shields.io/badge/LGPD-Conforme-059669?style=for-the-badge&logo=shield&logoColor=white)](#)
 
-## Description
+</div>
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Installation
+## 📌 Sobre o Projeto
 
-```bash
-$ npm install
-```
+O **AVA UniVC (Back-end)** é a API RESTful modular responsável pela inteligência de negócios, persistência de dados, telemetria de aprendizagem e serviços de certificação do Ambiente Virtual de Aprendizagem dos servidores públicos municipais de Vitória da Conquista (CETI / SETP).
 
-## Environment Variables
+Construído com base nos princípios de Clean Architecture e Domain-Driven Design (DDD), o sistema atende integralmente às demandas de governança digital, conformidade com a LGPD e gamificação ativa.
 
-```bash
-cp .env.example .env
-```
+---
 
-```bash
-set locals variables
-```
+## 🚀 Principais Módulos & Recursos
 
-## Running the app
+- 🔐 **Autenticação & RBAC:** Login via CPF/Matrícula (SSO Municipal), JWT com Guards de perfis (`SERVIDOR`, `GESTOR_SECRETARIA`, `ADMIN_RH_CETI`) e termo de consentimento LGPD.
+- 📚 **Catálogo de Cursos & Trilhas:** Gestão de cursos, módulos, aulas (Vídeo, Texto, PDF, Quiz) e trilhas organizadas pelos 5 Eixos Oficiais de Conhecimento.
+- 🎮 **Motor de Gamificação:** Concessão automática de XP por aulas concluídas, cálculo de níveis, galeria de badges e ranking intersecretarial.
+- 📜 **Certificação Digital Automatizada:** Emissão nativa de certificados em PDF com hash único de autenticidade, QR Code dinâmico e validação pública instantânea.
+- 📊 **Analytics & Telemetria:** Agregação de dados para painéis executivos do gestor (taxas de adesão, conclusão por órgão e horas dedicadas).
+- 🛡️ **Auditoria & Soft Delete:** Rastreamento de ações administrativas e exclusão lógica em conformidade com a governança pública.
 
-```bash
-# development
-$ npm run start
+---
 
-# watch mode
-$ npm run start:dev
+## 🛠️ Stack Tecnológica
 
-# production mode
-$ npm run start:prod
-```
+| Componente                  | Tecnologia                              |
+| --------------------------- | --------------------------------------- |
+| **Framework**               | NestJS 10 (TypeScript, Node.js)         |
+| **ORM & Database**          | Prisma ORM com PostgreSQL               |
+| **Validação & DTOs**        | `class-validator` e `class-transformer` |
+| **Segurança**               | Passport JWT, Bcrypt, Helmet e CORS     |
+| **Geração de PDF**          | PDFKit                                  |
+| **Documentação Interativa** | Swagger / OpenAPI (`/api/docs`)         |
 
-## Test
+---
+
+## ⚡ Como Executar o Projeto
+
+### Pré-requisitos
+
+- **Node.js:** Versão 18 ou superior
+- **npm** ou **yarn**
+- **PostgreSQL:** Banco de dados ativo local ou via Docker
+
+### 1. Clonar e Instalar Dependências
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cd conquistasaberes-backend
+npm install
 ```
 
-## Support
+### 2. Configurar Variáveis de Ambiente
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Crie ou edite o arquivo `.env` na raiz do módulo backend:
 
-## Stay in touch
+```env
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/ava_univc?schema=public"
+JWT_SECRET="sua_chave_secreta_jwt_aqui"
+JWT_EXPIRES_IN="1d"
+PORT=3001
+CORS_ORIGIN="*"
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 3. Executar Migrations e Popular o Banco (Seed)
 
-## License
+```bash
+# Executar as migrações do Prisma
+npx prisma migrate dev
 
-Nest is [MIT licensed](LICENSE).
+# Popular a base com dados estruturados da PMVC (Secretarias, Servidores, Cursos e Eixos)
+npx prisma db seed
+```
+
+### 4. Iniciar a API em Modo Desenvolvimento
+
+```bash
+npm run start:dev
+```
+
+A API estará acessível em: `http://localhost:3001`  
+Documentação Swagger disponível em: `http://localhost:3001/api/docs`
+
+---
+
+## 👥 Perfis de Acesso para Testes (Seed)
+
+| Perfil / Função             | Login Institucional           | Senha Padrão | Escopo de Acesso                                               |
+| --------------------------- | ----------------------------- | ------------ | -------------------------------------------------------------- |
+| **Administrador CETI / RH** | `admin.rh@pmvc.ba.gov.br`     | `admin`      | Gestão global, trilhas, secretarias, relatórios e certificados |
+| **Gestor de Secretaria**    | `ana.souza@pmvc.ba.gov.br`    | `123456`     | Dashboard setorial, telemetria e cursos da secretaria          |
+| **Servidor Municipal**      | `carlos.silva@pmvc.ba.gov.br` | `123456`     | Acesso a cursos, trilhas, quizzes, badges e passaporte         |
+
+---
+
+## 🏛️ Prefeitura Municipal de Vitória da Conquista
+
+**Central de Tecnologia da Informação (CETI)**  
+_Secretaria Municipal de Transparência, Controle e Governança (SETP)_

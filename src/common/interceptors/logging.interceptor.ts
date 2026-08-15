@@ -4,7 +4,7 @@ import {
   CallHandler,
   Injectable,
 } from '@nestjs/common';
-import { LoggingService } from 'src/shared/services/logging.service';
+import { LoggingService } from '../../shared/services/logging.service';
 import { Request, Response } from 'express';
 import { tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';

@@ -2,7 +2,7 @@ import {
   BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
 
-import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { PrismaService } from '../../plugins/database/services/prisma.service';
 
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';

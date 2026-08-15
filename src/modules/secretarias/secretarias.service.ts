@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { PrismaService } from '../../plugins/database/services/prisma.service';
 import { CreateSecretariaDto } from './dto/create-secretaria.dto';
 import { UpdateSecretariaDto } from './dto/update-secretaria.dto';
 

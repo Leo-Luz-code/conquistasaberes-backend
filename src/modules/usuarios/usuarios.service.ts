@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { PrismaService } from '../../plugins/database/services/prisma.service';
 import { BuscaUsuarioFilterDto } from './dto/busca-usuarios.dto';
 import { CriaUsuarioDto } from './dto/cria-usuario.dto';
 import { AtualizaUsuarioDto } from './dto/atualiza-usuario.dto';

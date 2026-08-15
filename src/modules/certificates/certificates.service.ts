@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { PrismaService } from '../../plugins/database/services/prisma.service';
 import * as PDFDocument from 'pdfkit';
 import { CertificateStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
