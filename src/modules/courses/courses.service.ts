@@ -474,12 +474,25 @@ export class CoursesService {
   }
 
   async createCourse(dto: CreateCourseDto, criadorId?: string) {
+    let categoria = 'Geral';
+    if (dto.trilhaId) {
+      const trilha = await this.prisma.learningPath.findUnique({
+        where: { id: dto.trilhaId },
+        include: { eixo: true },
+      });
+      if (trilha?.eixo?.nomeEixo) {
+        categoria = trilha.eixo.nomeEixo;
+      }
+    } else if (dto.categoria) {
+      categoria = dto.categoria;
+    }
+
     return this.prisma.course.create({
       data: {
         titulo: dto.titulo,
         descricao: dto.descricao,
         cargaHoraria: dto.cargaHoraria,
-        categoria: dto.categoria || 'Geral',
+        categoria,
         capaUrl: dto.capaUrl,
         secretariaId: dto.secretariaId || null,
         trilhaId: dto.trilhaId || null,
@@ -499,9 +512,23 @@ export class CoursesService {
       }
     }
 
+    const dataToUpdate: any = { ...dto };
+
+    if (dto.trilhaId !== undefined) {
+      if (dto.trilhaId) {
+        const trilha = await this.prisma.learningPath.findUnique({
+          where: { id: dto.trilhaId },
+          include: { eixo: true },
+        });
+        dataToUpdate.categoria = trilha?.eixo?.nomeEixo || 'Geral';
+      } else {
+        dataToUpdate.categoria = 'Geral';
+      }
+    }
+
     return this.prisma.course.update({
       where: { id },
-      data: dto,
+      data: dataToUpdate,
     });
   }
 
