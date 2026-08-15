@@ -27,7 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Tag                      | Release date |
 |--------------------------|--------------|
+| [1.0.1](#101-2026-08-14) | 2026-08-14   |
 | [1.0.0](#100-2026-08-14) | 2026-08-14   |
+
+
+## [1.0.1] - 2026-08-14
+
+### Added
+- **Endpoint de Estatísticas Públicas (`auth.controller.ts` & `auth.service.ts`):**
+  - Rota `GET /auth/public-stats` sem necessidade de autenticação para fornecer dados agregados e anônimos (total de cursos publicados e trilhas ativas) para a tela inicial/login.
 
 
 ## [1.0.0] - 2026-08-14

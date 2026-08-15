@@ -46,4 +46,10 @@ export class AuthController {
       frontendPort: 8080,
     };
   }
+
+  @ApiOperation({ summary: 'Estatísticas públicas para a tela inicial / login (sem autenticação)' })
+  @Get('public-stats')
+  async getPublicStats() {
+    return this.authService.getPublicStats();
+  }
 }

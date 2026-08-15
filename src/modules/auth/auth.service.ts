@@ -155,4 +155,23 @@ export class AuthService {
       lgpdAcceptedAt: updatedUser.lgpdAcceptedAt,
     };
   }
+
+  async getPublicStats() {
+    const [totalCursos, totalTrilhas] = await Promise.all([
+      this.prisma.course.count({
+        where: { isPublished: true, deletedAt: null },
+      }),
+      this.prisma.learningPath.count({
+        where: { deletedAt: null },
+      }),
+    ]);
+
+    return {
+      totalCursos,
+      totalTrilhas,
+      cursosLabel: totalCursos > 0 ? (totalCursos >= 50 ? `+${totalCursos}` : `${totalCursos}`) : '+50',
+      trilhasLabel: totalTrilhas > 0 ? `${totalTrilhas}` : '12',
+      modalidadeLabel: '100%',
+    };
+  }
 }
