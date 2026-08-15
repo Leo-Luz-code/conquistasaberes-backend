@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "lessons" ADD COLUMN     "xp" INTEGER NOT NULL DEFAULT 10;

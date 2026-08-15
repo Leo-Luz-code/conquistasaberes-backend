@@ -1,4 +1,4 @@
-# Modelo - Backend Changelog
+# AVA UniVC - Backend Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -27,25 +27,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Tag                      | Release date |
 |--------------------------|--------------|
-| [1.2.0](#120-2026-01-28) | 2026-01-28   |
-| [1.0.1](#101-2023-11-20) | 2023-11-20   |
-| [1.0.0](#100-2022-08-01) | 2022-08-01   |
+| [1.0.3](#103-2026-08-15) | 2026-08-15   |
+| [1.0.2](#102-2026-08-15) | 2026-08-15   |
+| [1.0.1](#101-2026-08-14) | 2026-08-14   |
+| [1.0.0](#100-2026-08-14) | 2026-08-14   |
 
 
-## [1.2.0] - 2026-01-23
+## [1.0.3] - 2026-08-15
 
-### Updated PRISMA
+### Changed
+- **Vinculação Automática de Categoria/Eixo (`courses.service.ts`):**
+  - Métodos `createCourse` e `updateCourse` agora atribuem automaticamente a categoria do curso como sendo o nome do Eixo da Trilha vinculada (`learningPath.eixo.nomeEixo`), definindo como `"Geral"` para cursos avulsos sem trilha.
 
-- Updated PRISMA.
 
-## [1.0.1] - 2023-11-20
+## [1.0.2] - 2026-08-15
 
-### Added CICD
+### Fixed
+- **Validação e Download de Certificados (`certificates.service.ts`):**
+  - Correção na busca de certificados em `validateCertificate` e `generatePdfBuffer` para suporte a busca insensível a maiúsculas/minúsculas (*case-insensitive*) e aceitação de código hash ou ID único.
 
-- Added CICD.
 
-## [1.0.0] - 2022-08-01
+## [1.0.1] - 2026-08-14
 
 ### Added
+- **Endpoint de Estatísticas Públicas (`auth.controller.ts` & `auth.service.ts`):**
+  - Rota `GET /auth/public-stats` sem necessidade de autenticação para fornecer dados agregados e anônimos (total de cursos publicados e trilhas ativas) para a tela inicial/login.
 
-- First release.
+
+## [1.0.0] - 2026-08-14
+
+### Added
+- **Endpoint de Inscritos por Trilha (`learning-paths.service.ts` & `learning-paths.controller.ts`):**
+  - Rota `GET /learning-paths/:id/inscritos` para listar servidores matriculados na trilha com dados funcionais.
+  - Inclusão do total de inscritos em `GET /learning-paths/admin/all`.
+
+### Fixed
+- **Filtro de Secretarias no Painel Executivo (`analytics.service.ts`):**
+  - Correção de erro 500 no cálculo de engajamento mensal ao filtrar por secretaria (`LessonProgress` consultado via `userId: { in: secUserIds }`).
+- **Cálculo de Taxa de Adesão em Trilhas (`analytics.service.ts`):**
+  - Deduplicação de servidores distintos para cálculo real de adesão por trilha.
+- **Configuração de Build e Deploy (`tsconfig.build.json` e `package.json`):**
+  - Correção de compilação do ponto de entrada `dist/main.js`.

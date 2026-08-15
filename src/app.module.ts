@@ -12,6 +12,13 @@ import { ForumModule } from './modules/forum/forum.module';
 import { RecommendationModule } from './modules/recommendation/recommendation.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { LearningPathsModule } from './modules/learning-paths/learning-paths.module';
+import { SecretariasModule } from './modules/secretarias/secretarias.module';
+import { NoticiasModule } from './modules/noticias/noticias.module';
+import { EixosModule } from './modules/eixos/eixos.module';
+import { LibraryModule } from './modules/library/library.module';
+import { EventsModule } from './modules/events/events.module';
+import { TalentosModule } from './modules/talents/talentos.module';
+import { SkillsModule } from './modules/skills/skills.module';
 
 @Module({
   imports: [
@@ -27,6 +34,13 @@ import { LearningPathsModule } from './modules/learning-paths/learning-paths.mod
     RecommendationModule,
     AnalyticsModule,
     LearningPathsModule,
+    SecretariasModule,
+    NoticiasModule,
+    EixosModule,
+    LibraryModule,
+    EventsModule,
+    TalentosModule,
+    SkillsModule
   ],
 })
 export class AppModule {}

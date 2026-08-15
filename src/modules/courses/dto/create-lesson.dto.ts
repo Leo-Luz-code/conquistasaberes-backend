@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsIn } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsIn, Max } from 'class-validator';
 
 export class CreateLessonDto {
   @ApiProperty({ example: 'Aula 1: O que é a LGPD?', description: 'Título da aula' })
@@ -7,9 +7,9 @@ export class CreateLessonDto {
   @IsNotEmpty()
   titulo: string;
 
-  @ApiProperty({ example: 'VIDEO', description: 'Tipo da aula: VIDEO, TEXTO, PDF, QUIZ' })
+  @ApiProperty({ example: 'VIDEO', description: 'Tipo da aula: VIDEO, TEXTO, PDF, QUIZ, AULA_PRESENCIAL' })
   @IsString()
-  @IsIn(['VIDEO', 'TEXTO', 'PDF', 'QUIZ'])
+  @IsIn(['VIDEO', 'TEXTO', 'PDF', 'QUIZ', 'AULA_PRESENCIAL'])
   tipo: string;
 
   @ApiPropertyOptional({ example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', description: 'URL do vídeo ou PDF' })
@@ -36,4 +36,10 @@ export class CreateLessonDto {
   @IsNumber()
   @IsOptional()
   ordem?: number;
+
+  @ApiPropertyOptional({ example: 10, description: 'XP concedido ao concluir a aula (Máx 100)' })
+  @IsNumber()
+  @Max(100)
+  @IsOptional()
+  xp?: number;
 }

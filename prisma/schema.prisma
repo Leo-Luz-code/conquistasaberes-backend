@@ -17,161 +17,328 @@ enum CertificateStatus {
   REVOKED
 }
 
+// 1. SECRETARIA MUNICIPAL
 model Secretaria {
-  id        String    @id @default(uuid())
-  nome      String    // ex: Secretaria de Saúde, Educação, SETP
-  sigla     String    @unique // ex: SMS, SMED, SETP
-  users     User[]
-  courses   Course[]
+  id    String @id @default(uuid())
+  nome  String @map("nome_secretaria")
+  sigla String @unique
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  descricao        String?
+  responsavelNome  String? @map("responsavel_nome")
+  responsavelEmail String? @map("responsavel_email")
+  telefone         String?
+  endereco         String?
+  corIdentificacao String? @map("cor_identificacao")
+  ativa            Boolean @default(true)
+
+  users      User[]
+  servidores Servidor[]
+  courses    Course[]
+  noticias   Noticia[]
+  events     Event[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("secretarias")
 }
 
-model User {
-  id             String        @id @default(uuid())
-  cpf            String        @unique
-  matricula      String        @unique
-  nome           String
-  email          String        @unique
-  passwordHash   String
-  role           Role          @default(SERVIDOR)
-  cargo          String        // ex: Técnico Administrativo, Encarregado
-  secretariaId   String
-  secretaria     Secretaria    @relation(fields: [secretariaId], references: [id])
-  xpPoints       Int           @default(0)
-  level          Int           @default(1)
+// 2. SERVIDOR PÚBLICO (Dados Funcionais)
+model Servidor {
+  id            String @id @default(uuid())
+  matriculaPmvc String @unique @map("matricula_pmvc")
+  cpf           String @unique
+  nomeCompleto  String @map("nome_completo")
+  cargoFuncao   String @map("cargo_funcao")
 
-  lgpdAccepted   Boolean       @default(false)
+  secretariaId String     @map("fk_secretaria")
+  secretaria   Secretaria @relation(fields: [secretariaId], references: [id])
+
+  users User[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("servidores")
+}
+
+// 3. USUÁRIO / AUTH (Acesso ao Sistema)
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String  @map("senha_hash")
+  role         Role    @default(SERVIDOR) @map("perfil_rbac")
+  statusAtivo  Boolean @default(true) @map("status_ativo")
+
+  servidorId String?   @map("fk_servidor")
+  servidor   Servidor? @relation(fields: [servidorId], references: [id])
+
+  cpf          String      @unique
+  matricula    String      @unique
+  nome         String
+  cargo        String?
+  secretariaId String?
+  secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
+
+  xpPoints Int @default(0)
+  level    Int @default(1)
+
+  lgpdAccepted   Boolean   @default(false)
   lgpdAcceptedAt DateTime?
 
-  enrollments    Enrollment[]
-  userBadges     UserBadge[]
-  certificates   Certificate[]
-  forumPosts     ForumPost[]
-  auditLogs      AuditLog[]
+  enrollments          Enrollment[]
+  userBadges           UserBadge[]
+  certificates         Certificate[]
+  certificadosExternos CertificadoExterno[]
+  passaportes          PassaportePontuacao[]
+  forumPosts           ForumPost[]
+  comments             ForumComment[]
+  auditLogs            AuditLog[]
+  eventEnrollments     EventEnrollment[]
+  learningPathEnrollments LearningPathEnrollment[]
+  coursesCreated       Course[]                  @relation("CoursesCreated")
+  learningPathsCreated LearningPath[]            @relation("LearningPathsCreated")
+  userSkills UserSkill[]
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  deletedAt      DateTime?
-  
-  comments     ForumComment[] 
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("users")
 }
 
+// 4. EIXO DE CONHECIMENTO
+model EixoConhecimento {
+  id        String @id @default(uuid())
+  nomeEixo  String @map("nome_eixo")
+  descricao String @db.Text
+
+  trilhas LearningPath[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("eixos_conhecimento")
+}
+
+// 5. TRILHA DE APRENDIZAGEM
+model LearningPath {
+  id                String  @id @default(uuid())
+  tituloTrilha      String  @map("titulo_trilha")
+  cargaHorariaTotal Int     @map("carga_horaria_total")
+  capaUrl           String? @map("capa_url")
+
+  eixoId String?           @map("fk_eixo")
+  eixo   EixoConhecimento? @relation(fields: [eixoId], references: [id])
+
+  criadorId String? @map("fk_criador")
+  criador   User?   @relation("LearningPathsCreated", fields: [criadorId], references: [id])
+
+  courses Course[]
+  enrollments LearningPathEnrollment[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("trilhas")
+}
+
+// 6. CURSO
 model Course {
-  id           String        @id @default(uuid())
-  titulo       String
+  id           String  @id @default(uuid())
+  titulo       String  @map("nome_curso")
   descricao    String
-  cargaHoraria Int           // em horas
+  modalidade   String  @default("EAD")
+  cargaHoraria Int     @map("carga_horaria")
+  obrigatorio  Boolean @default(false)
   capaUrl      String?
-  categoria    String        @default("Geral")
-  secretariaId String?       // Nulo se for geral para toda prefeitura
-  secretaria   Secretaria?   @relation(fields: [secretariaId], references: [id])
+  categoria    String  @default("Geral")
+
+  secretariaId String?
+  secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
+
+  criadorId String? @map("fk_criador")
+  criador   User?   @relation("CoursesCreated", fields: [criadorId], references: [id])
+
+  trilhaId String?       @map("fk_trilha")
+  trilha   LearningPath? @relation(fields: [trilhaId], references: [id])
 
   modules      Module[]
   enrollments  Enrollment[]
   certificates Certificate[]
   forumPosts   ForumPost[]
+  courseSkills CourseSkill[]
+  
+  isPublished Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
-  isPublished  Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  deletedAt    DateTime?
+  @@map("courses")
 }
 
+// 7. MÓDULO DO CURSO
 model Module {
-  id        String    @id @default(uuid())
-  titulo    String
-  ordem     Int
-  courseId  String
-  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons   Lesson[]
+  id       String   @id @default(uuid())
+  titulo   String
+  ordem    Int
+  courseId String
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("modules")
 }
 
+// 8. AULA DO MÓDULO (MODULO_AULA)
 model Lesson {
-  id          String           @id @default(uuid())
-  titulo      String
-  tipo        String           // VIDEO, TEXTO, PDF, QUIZ
-  conteudoUrl String?
-  texto       String?
-  quizData    String?          // JSON com perguntas e respostas do quiz
-  duracaoMin  Int              @default(10)
-  ordem       Int
-  moduleId    String
-  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  titulo           String    @map("titulo_aula")
+  tipo             String // VIDEO, TEXTO, PDF, QUIZ
+  conteudoUrl      String?
+  texto            String?
+  quizData         String?
+  duracaoMin       Int       @default(10)
+  xp               Int       @default(10)
+  ordem            Int
+  dataHoraAgendada DateTime? @map("data_hora_agendada")
+
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
   progresses  LessonProgress[]
+  frequencias FrequenciaQrcode[]
 
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  deletedAt   DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("lessons")
 }
 
-model Enrollment {
-  id          String    @id @default(uuid())
-  userId      String
-  courseId    String
-  user        User      @relation(fields: [userId], references: [id])
-  course      Course    @relation(fields: [courseId], references: [id])
-  progress    Float     @default(0.0) // 0 a 100%
-  completedAt DateTime?
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-
-  @@unique([userId, courseId])
-}
-
+// 9. PROGRESSO NA AULA
 model LessonProgress {
-  id        String    @id @default(uuid())
+  id        String  @id @default(uuid())
   userId    String
   lessonId  String
-  lesson    Lesson    @relation(fields: [lessonId], references: [id])
-  completed Boolean   @default(true)
+  lesson    Lesson  @relation(fields: [lessonId], references: [id])
+  completed Boolean @default(true)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@unique([userId, lessonId])
+  @@map("lesson_progresses")
 }
 
-model Badge {
-  id          String      @id @default(uuid())
-  nome        String
-  descricao   String
-  icone       String      // Nome do ícone Quasar ou URL
-  xpBonus     Int         @default(50)
-  userBadges  UserBadge[]
+// 10. MATRÍCULA
+model Enrollment {
+  id                   String    @id @default(uuid())
+  userId               String    @map("fk_usuario")
+  courseId             String    @map("fk_curso")
+  user                 User      @relation(fields: [userId], references: [id])
+  course               Course    @relation(fields: [courseId], references: [id])
+  progress             Float     @default(0.0)
+  statusConclusao      String    @default("EM_ANDAMENTO") @map("status_conclusao")
+  pontuacaoConquistada Int       @default(0) @map("pontuacao_conquistada")
+  completedAt          DateTime?
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  deletedAt   DateTime?
+  frequencias    FrequenciaQrcode[]
+  projetosFinais ProjetoFinal[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
 }
 
-model UserBadge {
-  id        String    @id @default(uuid())
-  userId    String
-  badgeId   String
-  user      User      @relation(fields: [userId], references: [id])
-  badge     Badge     @relation(fields: [badgeId], references: [id])
-  earnedAt  DateTime  @default(now())
+// 11. FREQUÊNCIA QR CODE (Aulas Presenciais/Híbridas)
+model FrequenciaQrcode {
+  id               String    @id @default(uuid())
+  dataHoraCheckin  DateTime  @map("data_hora_checkin")
+  dataHoraCheckout DateTime? @map("data_hora_checkout")
+  presencaValidada Boolean   @default(false) @map("presenca_validada")
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  enrollmentId String     @map("fk_matricula")
+  lessonId     String     @map("fk_modulo")
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  lesson       Lesson     @relation(fields: [lessonId], references: [id])
 
-  @@unique([userId, badgeId])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("frequencias_qrcode")
 }
 
+// 12. PROJETO FINAL
+model ProjetoFinal {
+  id              String @id @default(uuid())
+  tituloProjeto   String @map("titulo_projeto")
+  resumoExecutivo String @map("resumo_executivo") @db.Text
+  urlDocumento    String @map("url_documento")
+  notaAvaliacao   Float? @map("nota_avaliacao")
+
+  enrollmentId String     @map("fk_matricula")
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("projetos_finais")
+}
+
+// 13. PASSAPORTE DE PONTUAÇÃO
+model PassaportePontuacao {
+  id                    String  @id @default(uuid())
+  pontosAnoCorrente     Int     @default(0) @map("pontos_ano_corrente")
+  pontosAcumuladosTotal Int     @default(0) @map("pontos_acumulados_total")
+  badgesSelosJson       String? @map("badges_selos_json") @db.Text
+
+  userId String @map("fk_usuario")
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("passaportes_pontuacao")
+}
+
+// 14. CERTIFICADOS EXTERNOS (Homologação)
+model CertificadoExterno {
+  id                  String @id @default(uuid())
+  instituicaoEmissora String @map("instituicao_emissora")
+  tituloCurso         String @map("titulo_curso")
+  cargaHoraria        Int    @map("carga_horaria")
+  statusHomologacao   String @default("PENDENTE") @map("status_homologacao")
+  urlArquivoPdf       String @map("url_arquivo_pdf")
+
+  userId String @map("fk_usuario")
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("certificados_externos")
+}
+
+// 15. CERTIFICADOS AVA (Nativos)
 model Certificate {
   id              String            @id @default(uuid())
-  codigoValidacao  String            @unique // Hash único
+  codigoValidacao String            @unique
   userId          String
   courseId        String
   user            User              @relation(fields: [userId], references: [id])
@@ -179,50 +346,234 @@ model Certificate {
   status          CertificateStatus @default(EMITTED)
   issuedAt        DateTime          @default(now())
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  deletedAt       DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("certificates")
 }
 
+// 16. GAMIFICAÇÃO - BADGES
+model Badge {
+  id         String      @id @default(uuid())
+  nome       String
+  descricao  String
+  icone      String
+  xpBonus    Int         @default(50)
+  userBadges UserBadge[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  badgeId  String
+  user     User     @relation(fields: [userId], references: [id])
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  earnedAt DateTime @default(now())
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// 17. FÓRUM & COMENTÁRIOS
 model ForumPost {
-  id        String    @id @default(uuid())
-  titulo    String
-  conteudo  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id       String         @id @default(uuid())
+  titulo   String
+  conteudo String
+  userId   String
+  user     User           @relation(fields: [userId], references: [id])
+  courseId String?
+  course   Course?        @relation(fields: [courseId], references: [id])
+  comments ForumComment[]
 
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  courseId  String?
-  course    Course?   @relation(fields: [courseId], references: [id])
-
-  comments  ForumComment[] // 👈 ADICIONE ESTA LINHA AQUI
+  @@map("forum_posts")
 }
 
 model ForumComment {
-  id        String    @id @default(uuid())
-  conteudo  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id       String    @id @default(uuid())
+  conteudo String
+  postId   String
+  post     ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  postId    String
-  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("forum_comments")
 }
 
+// 18. AUDITORIA LGPD
 model AuditLog {
-  id        String    @id @default(uuid())
+  id        String  @id @default(uuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  acao      String    // ex: LOGIN, CURSO_CONCLUIDO, ACEITE_LGPD
+  user      User    @relation(fields: [userId], references: [id])
+  acao      String
   detalhes  String?
   ipAddress String?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("audit_logs")
+}
+
+// 19. Biblioteca
+model Biblioteca {
+  id           String @id @default(uuid())
+  titulo       String
+  documentoUrl String
+  categoria    String
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+}
+
+// 20. NOTÍCIAS & COMUNICADOS INSTITUCIONAIS
+model Noticia {
+  id            String  @id @default(uuid())
+  titulo        String
+  subtitulo     String?
+  conteudo      String
+  categoria     String  @default("Geral")
+  capaUrl       String? @map("capa_url")
+  destaque      Boolean @default(false)
+  publicada     Boolean @default(true)
+  visualizacoes Int     @default(0)
+  autorNome     String? @map("autor_nome")
+
+  secretariaAlvoId String?     @map("fk_secretaria_alvo")
+  secretariaAlvo   Secretaria? @relation(fields: [secretariaAlvoId], references: [id])
+
+  dataPublicacao DateTime  @default(now()) @map("data_publicacao")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@map("noticias")
+}
+
+// 21. Eventos
+model Event {
+  id         String   @id @default(uuid())
+  titulo     String   @map("titulo_evento")
+  descricao  String?  @db.Text
+  categoria  String   @default("Palestra") // Ex: Palestra, Workshop, Reunião
+  dataInicio DateTime @map("data_inicio") // Data e hora de início (ex: 15 de maio às 14h)
+  dataFim    DateTime @map("data_fim") // Data e hora de término (ex: 15 de maio às 17h)
+  local      String? // Ex: Auditório Prefeitura
+  modalidade String   @default("PRESENCIAL") // PRESENCIAL, ONLINE, HIBRIDO
+  vagas      Int? // Limite de vagas opcional
+  capaUrl    String?  @map("capa_url")
+
+  secretariaId String?     @map("fk_secretaria")
+  secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
+
+  inscricoes EventEnrollment[]
+
+  isPublished Boolean   @default(true) @map("is_published")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@map("events")
+}
+
+// 22. INSCRIÇÃO EM EVENTOS
+model EventEnrollment {
+  id                 String    @id @default(uuid())
+  userId             String    @map("fk_usuario")
+  eventId            String    @map("fk_evento")
+  user               User      @relation(fields: [userId], references: [id])
+  event              Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  presencaValidada   Boolean   @default(false) @map("presenca_validada")
+  presencaValidadaEm DateTime? @map("presenca_validada_em")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([userId, eventId])
+  @@map("event_enrollments")
+}
+
+// 23. MATRÍCULA EM TRILHA DE APRENDIZAGEM
+model LearningPathEnrollment {
+  id             String       @id @default(uuid())
+  userId         String       @map("fk_usuario")
+  learningPathId String       @map("fk_trilha")
+  user           User         @relation(fields: [userId], references: [id])
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  status         String       @default("EM_ANDAMENTO") // EM_ANDAMENTO, CONCLUIDO
+  progress       Float        @default(0.0)
+  completedAt    DateTime?
+
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+
+  @@unique([userId, learningPathId])
+  @@map("learning_path_enrollments")
+}
+
+// 24. Skill
+model Skill {
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  categoria String? // agrupamento macro, ex: "Tecnologia", "Gestão", "Atendimento"
+
+  courseSkills CourseSkill[]
+  userSkills   UserSkill[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("skills")
+}
+
+// 25. RELAÇÃO CURSO <-> SKILL (um curso pode desenvolver várias habilidades)
+model CourseSkill {
+  courseId String
+  skillId  String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skill    Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([courseId, skillId])
+  @@map("course_skills")
+}
+
+// 26. SCORE DE HABILIDADE POR SERVIDOR (materializado, atualizado ao concluir curso)
+model UserSkill {
+  id               String @id @default(uuid())
+  userId           String
+  skillId          String
+  user             User   @relation(fields: [userId], references: [id])
+  skill            Skill  @relation(fields: [skillId], references: [id])
+  nivel            Int    @default(0) // 0-100, calculado
+  cursosConcluidos Int    @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, skillId])
+  @@map("user_skills")
 }

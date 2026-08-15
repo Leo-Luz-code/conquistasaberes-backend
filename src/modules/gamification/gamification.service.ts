@@ -1,9 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/plugins/database/services/prisma.service';
+import { CreateBadgeDto, UpdateBadgeDto } from './dto';
 
 @Injectable()
 export class GamificationService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // =========================================================================
+  // GESTÃO ADMINISTRATIVA DE BADGES (CRUD)
+  // =========================================================================
+
+  async findAllBadges() {
+    return this.prisma.badge.findMany({
+      where: { deletedAt: null },
+      include: {
+        _count: {
+          select: { userBadges: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createBadge(dto: CreateBadgeDto) {
+    return this.prisma.badge.create({
+      data: {
+        nome: dto.nome,
+        descricao: dto.descricao,
+        icone: dto.icone,
+        xpBonus: dto.xpBonus ?? 50,
+      },
+    });
+  }
+
+  async updateBadge(id: string, dto: UpdateBadgeDto) {
+    const badge = await this.prisma.badge.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!badge) {
+      throw new NotFoundException('Conquista/Badge não encontrada.');
+    }
+
+    return this.prisma.badge.update({
+      where: { id },
+      data: {
+        ...(dto.nome && { nome: dto.nome }),
+        ...(dto.descricao && { descricao: dto.descricao }),
+        ...(dto.icone && { icone: dto.icone }),
+        ...(dto.xpBonus !== undefined && { xpBonus: dto.xpBonus }),
+      },
+    });
+  }
+
+  async deleteBadge(id: string) {
+    const badge = await this.prisma.badge.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!badge) {
+      throw new NotFoundException('Conquista/Badge não encontrada.');
+    }
+
+    return this.prisma.badge.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
 
   async getUserGamification(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -79,6 +140,39 @@ export class GamificationService {
     return {
       topUsers,
       topSecretarias,
+    };
+  }
+
+  async processLessonCompletion(userId: string, gainedXp: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    const oldLevel = user.level;
+    const currentXp = user.xpPoints;
+    const newXp = currentXp + gainedXp;
+    
+    let newLevel = Math.floor(0.1 * Math.sqrt(newXp)) + 1;
+    if (newLevel < 1) newLevel = 1;
+
+    const leveledUp = newLevel > oldLevel;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        xpPoints: newXp,
+        level: newLevel,
+      },
+    });
+
+    return {
+      newXp,
+      newLevel,
+      leveledUp,
     };
   }
 }

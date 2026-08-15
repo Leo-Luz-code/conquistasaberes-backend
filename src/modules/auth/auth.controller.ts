@@ -32,4 +32,24 @@ export class AuthController {
   async acceptLgpd(@Request() req: any) {
     return this.authService.acceptLgpd(req.user.sub);
   }
+
+  @ApiOperation({ summary: 'Obter informações do servidor e IP local dinâmico' })
+  @Get('server-info')
+  getServerInfo(@Request() req: any) {
+    const { getLocalIpAddress } = require('../../common/utils/network.util');
+    const localIp = getLocalIpAddress();
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.get('host') || `${localIp}:3001`;
+    return {
+      localIp,
+      backendUrl: `${protocol}://${host}`,
+      frontendPort: 8080,
+    };
+  }
+
+  @ApiOperation({ summary: 'Estatísticas públicas para a tela inicial / login (sem autenticação)' })
+  @Get('public-stats')
+  async getPublicStats() {
+    return this.authService.getPublicStats();
+  }
 }
