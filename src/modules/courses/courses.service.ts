@@ -73,7 +73,17 @@ export class CoursesService {
       where: { id, deletedAt: null },
       include: {
         secretaria: true,
-        trilha: true,
+        trilha: {
+          include: {
+            eixo: true,
+            _count: {
+              select: {
+                enrollments: { where: { deletedAt: null } },
+                courses: { where: { deletedAt: null } },
+              },
+            },
+          },
+        },
         modules: {
           where: { deletedAt: null },
           orderBy: { ordem: 'asc' },
@@ -84,11 +94,34 @@ export class CoursesService {
             },
           },
         },
+        _count: {
+          select: {
+            enrollments: { where: { deletedAt: null } },
+          },
+        },
       },
     });
 
     if (!course) {
       throw new NotFoundException('Curso não encontrado.');
+    }
+
+    let trilhaInscritosCount = 0;
+    if (course.trilhaId) {
+      const [directEnrollments, courseEnrollments] = await Promise.all([
+        this.prisma.learningPathEnrollment.count({
+          where: { learningPathId: course.trilhaId, deletedAt: null },
+        }),
+        this.prisma.enrollment.findMany({
+          where: {
+            course: { trilhaId: course.trilhaId, deletedAt: null },
+            deletedAt: null,
+          },
+          select: { userId: true },
+          distinct: ['userId'],
+        }),
+      ]);
+      trilhaInscritosCount = Math.max(directEnrollments, courseEnrollments.length);
     }
 
     let userProgress = 0;
@@ -117,6 +150,13 @@ export class CoursesService {
 
     return {
       ...course,
+      trilha: course.trilha
+        ? {
+            ...course.trilha,
+            inscritosCount: trilhaInscritosCount,
+          }
+        : null,
+      inscritosCount: course._count?.enrollments || 0,
       isEnrolled,
       userProgress,
       completedLessonIds,

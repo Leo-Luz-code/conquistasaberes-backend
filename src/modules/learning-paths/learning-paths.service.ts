@@ -231,17 +231,146 @@ export class LearningPathsService {
       ];
     }
 
-    return this.prisma.learningPath.findMany({
+    const paths = await this.prisma.learningPath.findMany({
       where: whereClause,
       include: {
         eixo: true,
         courses: {
           where: { deletedAt: null },
-          include: { secretaria: true },
+          include: { secretaria: true, _count: { select: { enrollments: true } } },
+        },
+        enrollments: {
+          where: { deletedAt: null },
+        },
+        _count: {
+          select: {
+            enrollments: { where: { deletedAt: null } },
+            courses: { where: { deletedAt: null } },
+          },
         },
       },
       orderBy: { tituloTrilha: 'asc' },
     });
+
+    return Promise.all(
+      paths.map(async (path) => {
+        const courseIds = path.courses.map((c) => c.id);
+        const courseEnrollments = courseIds.length
+          ? await this.prisma.enrollment.findMany({
+              where: {
+                courseId: { in: courseIds },
+                deletedAt: null,
+              },
+              select: { userId: true },
+              distinct: ['userId'],
+            })
+          : [];
+
+        const directEnrollmentsCount = path.enrollments.length;
+        const totalDistinctInscritos = Math.max(directEnrollmentsCount, courseEnrollments.length);
+
+        return {
+          ...path,
+          cursosCount: path.courses.length,
+          inscritosCount: totalDistinctInscritos,
+        };
+      }),
+    );
+  }
+
+  async getLearningPathEnrollments(learningPathId: string) {
+    const trilha = await this.prisma.learningPath.findFirst({
+      where: { id: learningPathId, deletedAt: null },
+      include: {
+        courses: {
+          where: { deletedAt: null },
+          select: { id: true, titulo: true },
+        },
+      },
+    });
+
+    if (!trilha) {
+      throw new NotFoundException('Trilha de aprendizagem não encontrada.');
+    }
+
+    // 1. Matrículas diretas na trilha
+    const directEnrollments = await this.prisma.learningPathEnrollment.findMany({
+      where: { learningPathId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            cpf: true,
+            matricula: true,
+            cargo: true,
+            secretaria: { select: { nome: true, sigla: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 2. Matrículas nos cursos da trilha para garantir lista completa
+    const courseIds = trilha.courses.map((c) => c.id);
+    const courseEnrollments = courseIds.length
+      ? await this.prisma.enrollment.findMany({
+          where: {
+            courseId: { in: courseIds },
+            deletedAt: null,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                nome: true,
+                email: true,
+                cpf: true,
+                matricula: true,
+                cargo: true,
+                secretaria: { select: { nome: true, sigla: true } },
+              },
+            },
+          },
+        })
+      : [];
+
+    const userMap = new Map();
+
+    directEnrollments.forEach((e) => {
+      if (e.user) {
+        userMap.set(e.userId, {
+          userId: e.userId,
+          nome: e.user.nome,
+          email: e.user.email,
+          matricula: e.user.matricula,
+          cargo: e.user.cargo || 'Servidor',
+          secretaria: e.user.secretaria?.sigla || 'PMVC',
+          progress: e.progress || 0,
+          status: e.status || 'EM_ANDAMENTO',
+          createdAt: e.createdAt,
+        });
+      }
+    });
+
+    courseEnrollments.forEach((e) => {
+      if (e.user && !userMap.has(e.userId)) {
+        userMap.set(e.userId, {
+          userId: e.userId,
+          nome: e.user.nome,
+          email: e.user.email,
+          matricula: e.user.matricula,
+          cargo: e.user.cargo || 'Servidor',
+          secretaria: e.user.secretaria?.sigla || 'PMVC',
+          progress: e.progress || 0,
+          status: e.statusConclusao || 'EM_ANDAMENTO',
+          createdAt: e.createdAt,
+        });
+      }
+    });
+
+    return Array.from(userMap.values());
   }
 
   async create(dto: CreateLearningPathDto, criadorId?: string) {

@@ -44,6 +44,15 @@ export class LearningPathsController {
     return this.learningPathsService.findOne(id, req.user?.sub);
   }
 
+  @ApiOperation({ summary: 'Listar servidores inscritos em uma trilha de aprendizagem' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAtGuard, RolesGuard)
+  @Roles(Role.ADMIN_RH_CETI, Role.GESTOR_SECRETARIA)
+  @Get(':id/inscritos')
+  async getEnrollments(@Param('id') id: string) {
+    return this.learningPathsService.getLearningPathEnrollments(id);
+  }
+
   @ApiOperation({ summary: 'Inscrever servidor em uma trilha de aprendizagem' })
   @ApiBearerAuth()
   @UseGuards(JwtAtGuard)
