@@ -54,4 +54,4 @@ RUN mkdir -p /app/uploads
 EXPOSE 3001
 
 # Script de inicialização: sincroniza banco, popula dados iniciais e inicia a aplicação
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma db seed && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]
