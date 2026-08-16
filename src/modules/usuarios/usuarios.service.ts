@@ -10,12 +10,18 @@ export class UsuariosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(dto: BuscaUsuarioFilterDto) {
-    const pagina = dto.pagina ? Number(dto.pagina) : 1;
-    const itensPorPagina = dto.itensPorPagina ? Number(dto.itensPorPagina) : 10;
+    const pagina = dto.pagina ? Math.max(1, Number(dto.pagina)) : 1;
+    const itensPorPagina = dto.itensPorPagina ? Math.max(1, Number(dto.itensPorPagina)) : 10;
     const where: any = { deletedAt: null };
 
     if (dto.busca) {
-      where.nome = { contains: dto.busca, mode: 'insensitive' };
+      const cleanBusca = dto.busca.trim();
+      where.OR = [
+        { nome: { contains: cleanBusca, mode: 'insensitive' } },
+        { email: { contains: cleanBusca, mode: 'insensitive' } },
+        { matricula: { contains: cleanBusca, mode: 'insensitive' } },
+        { cpf: { contains: cleanBusca, mode: 'insensitive' } },
+      ];
     }
 
     if (dto.filtro && dto.valor) {
@@ -24,6 +30,7 @@ export class UsuariosService {
 
       filtros.forEach((f, index) => {
         const v = valores[index];
+        if (!v) return;
         if (f === 'nivel') {
           if (v === 'ADMIN') where.role = 'ADMIN_RH_CETI';
           else if (v === 'USUARIO') where.role = 'SERVIDOR';
@@ -35,14 +42,16 @@ export class UsuariosService {
       });
     }
 
-    const skip = (pagina - 1) * itensPorPagina;
-    const take = itensPorPagina;
-
     const totalItens = await this.prisma.user.count({ where });
 
     if (totalItens === 0) {
-      return { data: [], maxPag: 0 };
+      return { data: [], maxPag: 1, total: 0, pagina, itensPorPagina };
     }
+
+    const maxPag = Math.max(1, Math.ceil(totalItens / itensPorPagina));
+    const safePagina = Math.min(pagina, maxPag);
+    const skip = (safePagina - 1) * itensPorPagina;
+    const take = itensPorPagina;
 
     const users = await this.prisma.user.findMany({
       where,
@@ -69,7 +78,10 @@ export class UsuariosService {
 
     return {
       data,
-      maxPag: Math.ceil(totalItens / itensPorPagina),
+      maxPag,
+      total: totalItens,
+      pagina: safePagina,
+      itensPorPagina,
     };
   }
 
