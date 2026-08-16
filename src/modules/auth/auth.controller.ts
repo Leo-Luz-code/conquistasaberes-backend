@@ -33,15 +33,16 @@ export class AuthController {
     return this.authService.acceptLgpd(req.user.sub);
   }
 
-  @ApiOperation({ summary: 'Obter informações do servidor e IP local dinâmico' })
+  @ApiOperation({ summary: 'Obter informações do servidor e host configurado' })
   @Get('server-info')
   getServerInfo(@Request() req: any) {
-    const { getLocalIpAddress } = require('../../common/utils/network.util');
-    const localIp = getLocalIpAddress();
+    const hostname = process.env.APP_HOSTNAME || 'localhost';
+    const port = process.env.HTTP_PORT || '3001';
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.get('host') || `${localIp}:3001`;
+    const host = req.get('host') || `${hostname}:${port}`;
     return {
-      localIp,
+      hostname,
+      port,
       backendUrl: `${protocol}://${host}`,
       frontendPort: 8080,
     };

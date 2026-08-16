@@ -136,13 +136,12 @@ async function bootstrap() {
     );
   }
 
-  const { getLocalIpAddress } = require('./common/utils/network.util');
-  const localIp = getLocalIpAddress();
+  const appHost = APP_HOSTNAME || 'localhost';
 
   await app.listen(HTTP_PORT, '0.0.0.0', () => {
     const address =
-      'http' + (ssl ? 's' : '') + '://' + localIp + ':' + HTTP_PORT + '/';
-    Logger.log('🚀 Servidor rodando em ' + address + ' (Disponível na rede local)');
+      'http' + (ssl ? 's' : '') + '://' + appHost + ':' + HTTP_PORT + '/';
+    Logger.log('🚀 Servidor rodando em ' + address);
   });
 }
 
