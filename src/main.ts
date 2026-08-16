@@ -72,9 +72,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document);
 
-  const HTTP_PORT = config.get<string>('HTTP_PORT');
+  const HTTP_PORT = config.get<string>('PORT') || config.get<string>('HTTP_PORT') || 3001;
   const APP_NAME = config.get<string>('APP_NAME');
-  const APP_HOSTNAME = config.get<string>('APP_HOSTNAME');
+  const APP_HOSTNAME = config.get<string>('APP_HOSTNAME') || 'localhost';
   const NODE_ENV = config.get<string>('NODE_ENV');
   const ELASTICSEARCH = config.get<string>('ELASTICSEARCH');
   const ELASTICSEARCH_ACTIVE = config.get<string>('ELASTICSEARCH_ACTIVE');

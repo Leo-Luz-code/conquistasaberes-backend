@@ -1,23 +1,56 @@
-FROM node:24-alpine
+# =========================================================
+# Multi-stage Dockerfile para NestJS Backend (AVA UniVC)
+# =========================================================
+
+# 1. Estágio de Build
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY . .
+# Instala ferramentas necessárias para compilação nativa se necessário
+RUN apk add --no-cache openssl
 
-RUN npm i -g pm2
+# Copia manifestos de pacotes e schema do Prisma
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+COPY prisma ./prisma/
 
-RUN npm i -g @nestjs/cli
+# Instala todas as dependências
+RUN npm ci
 
-RUN npm i
-
+# Gera o cliente Prisma
 RUN npx prisma generate
 
-RUN npx prisma migrate deploy
-
+# Copia o código fonte e compila
+COPY src ./src/
 RUN npm run build
 
-RUN npm uninstall typescript
+# 2. Estágio de Produção
+FROM node:22-alpine AS runner
 
-EXPOSE 3006
+WORKDIR /app
 
-CMD ["pm2-runtime", "ecosystem.config.js"]
+RUN apk add --no-cache openssl
+
+ENV NODE_ENV=production
+ENV APP_NAME=ava-univc-backend
+ENV HTTP_PORT=3001
+ENV PORT=3001
+
+# Copia dependências e artefatos de build do estágio anterior
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY prisma ./prisma/
+
+RUN npm ci --only=production && npx prisma generate
+
+COPY --from=builder /app/dist ./dist
+
+# Cria diretório para uploads de arquivos
+RUN mkdir -p /app/uploads
+
+EXPOSE 3001
+
+# Script de inicialização: sincroniza banco e inicia a aplicação
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]
