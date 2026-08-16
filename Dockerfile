@@ -14,6 +14,7 @@ RUN apk add --no-cache openssl
 COPY package*.json ./
 COPY tsconfig*.json ./
 COPY nest-cli.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
 # Instala todas as dependências
@@ -41,6 +42,7 @@ ENV PORT=3001
 # Copia dependências e artefatos de build do estágio anterior
 COPY package*.json ./
 COPY tsconfig*.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
 RUN npm ci --only=production && npx prisma generate
