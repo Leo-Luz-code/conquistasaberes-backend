@@ -39,14 +39,13 @@ ENV APP_NAME=ava-univc-backend
 ENV HTTP_PORT=3001
 ENV PORT=3001
 
-# Copia dependências e artefatos de build do estágio anterior
+# Copia dependências e artefatos compilados do estágio anterior
 COPY package*.json ./
 COPY tsconfig*.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production && npx prisma generate
-
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
 # Cria diretório para uploads de arquivos
